@@ -1,0 +1,8 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "ESP32-CAM")(type "KiCad")(uri "${KIPRJMOD}/libs/ESP32-CAM.kicad_sym")(options "")(descr ""))
+  (lib (name "ESP8266")(type "KiCad")(uri "${KIPRJMOD}/libs/113990105.kicad_sym")(options "")(descr ""))
+  (lib (name "MIT_Lib")(type "KiCad")(uri "${KIPRJMOD}/libs/MIT_lib.kicad_sym")(options "")(descr ""))
+  (lib (name "GY-521")(type "KiCad")(uri "${KIPRJMOD}/libs/GY-521.kicad_sym")(options "")(descr ""))
+  (lib (name "AS5600")(type "KiCad")(uri "${KIPRJMOD}/libs/AS5600.kicad_sym")(options "")(descr ""))
+)
