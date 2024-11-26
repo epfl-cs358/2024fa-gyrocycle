@@ -1,24 +1,54 @@
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
 #include <Wire.h>
+#include <math.h>
+
+#include <ODriveUART.h>
+#include <SoftwareSerial.h>
+
+// odrive
+// pin 8: RX - connect to ODrive TX
+// pin 9: TX - connect to ODrive RX
+SoftwareSerial odrive_serial(8, 9);
+unsigned long baudrate = 115200; // Must match what you configure on the ODrive (see docs for details)
+
+ODriveUART odrive(odrive_serial);
+
 
 Adafruit_MPU6050 mpu;
 // manually calibrate MPU6050 readings
-float accelYoffset = 0.1;
-float accelZoffset = 1.2;
-float gyroXoffset = 0.1;
+float accelYoffset = -0.08;
+float accelZoffset = 0.14;
+float gyroXoffset = 0.0;
 
-float kalman_pred[] = {0, 0.06981}; // angle and uncertainty at each step 0.06981 corresponds to 4 deg of uncertainty on the first step
+float kalman_pred[] = {0, 0.06981}; // angle and uncertainty at each step, 0.06981 corresponds to 4 deg of uncertainty on the first step
 
 unsigned long lastTime = 0;
 unsigned long currentTime = 0;
 
+// Motor safety limits
+float speed_max = 10;
+float torque_max = 0.1; 
+
+// model characteristics
+float mass = 1; // in kg
+float centerOfGravity = 0.15; // in meters
+
+// basic balancing constants
+float positionWeight = 1;
+float rotationWeight = 0.1;
+float gear_ratio = 0.08; // should be 0.5 I think
+
+
+
 void setup(void) {
-  Serial.begin(115200);
+  Serial.begin(9600);
+  odrive_serial.begin(baudrate);
+
   while (!Serial)
     delay(10); 
 
-  Serial.println("Adafruit MPU6050 test!");
+  Serial.println("Found Adafruit MPU6050 chip");
 
   // Try to initialize MPU6050
   if (!mpu.begin()) {
@@ -34,35 +64,113 @@ void setup(void) {
   mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
   delay(100);
   // =============================================
+
+  Serial.println("Waiting for ODrive...");
+  while (odrive.getState() == AXIS_STATE_UNDEFINED) {
+    delay(100);
+  }
+
+  Serial.println("found ODrive");
+  
+  Serial.print("DC voltage: ");
+  Serial.println(odrive.getParameterAsFloat("vbus_voltage"));
+  
+  Serial.println("Enabling closed loop control...");
+  while (odrive.getState() != AXIS_STATE_CLOSED_LOOP_CONTROL) {
+    odrive.clearErrors();
+    odrive.setState(AXIS_STATE_CLOSED_LOOP_CONTROL);
+    delay(10);
+  }
+  
+  Serial.println("ODrive running!");
+  // ========================================
+
+  Serial.println("SET OFFSETS AND MAX SPEED AND ACCELERATION CORRECTLY!");
+  delay(1000);
 }
 
 void loop() {
-  currentTime = millis();
+  // Gyroscope readings printed out, waiting for start command
+  while (Serial.available() == 0 || Serial.readStringUntil('\n') != "start") {
+
+    currentTime = millis(); 
+
+    sensors_event_t a, g, temp;
+    mpu.getEvent(&a, &g, &temp);
+
+    // print values for calibration
+    Serial.print(a.acceleration.y - accelYoffset);
+    Serial.print(",");
+    Serial.print(a.acceleration.z - accelZoffset);
+    Serial.print(",");
+    Serial.println(a.gyro.x - gyroXoffset);
 
 
-  // MPU6050 PART
-  // Get readings from the MPU6050
-  sensors_event_t a, g, temp;
-  mpu.getEvent(&a, &g, &temp);
+    // rotation rate around X axis and angle from vertical
+    float gyroX = g.gyro.x - gyroXoffset;
+    angleCalculator(a.acceleration.y - accelYoffset, a.acceleration.z - accelZoffset, gyroX, kalman_pred, currentTime - lastTime);
 
-  // print values for calibration
-  // Serial.print(a.acceleration.y - accelYoffset);
-  // Serial.print(",");
-  // Serial.print(a.acceleration.z - accelZoffset);
-  // Serial.print(",");
-  // Serial.println(a.gyro.x - gyroXoffset);
+    Serial.print("angle:");
+    Serial.println(kalman_pred[0]);
 
+    lastTime = currentTime;
+  }
+  // Balancing loop
+  while (kalman_pred[0] > (-M_PI / 4) && kalman_pred[0] < (M_PI / 4) && Serial.available() == 0) {
+    
+    currentTime = millis(); 
 
-  // rotation rate around X axis and angle from vertical
-  float gyroX = g.gyro.x - gyroXoffset;
-  angleCalculator(a.acceleration.y - accelYoffset, a.acceleration.z - accelZoffset, gyroX, kalman_pred, currentTime - lastTime);
-  // Testing
+    sensors_event_t a, g, temp;
+    mpu.getEvent(&a, &g, &temp);
 
-  Serial.print("angle:");
-  Serial.println(kalman_pred[0]);
+    // rotation rate around X axis and angle from vertical
+    float gyroX = g.gyro.x - gyroXoffset;
+    angleCalculator(a.acceleration.y - accelYoffset, a.acceleration.z - accelZoffset, gyroX, kalman_pred, currentTime - lastTime);
+
+    
+
+    // theoretical torque from gravity
+    float theoreticalTorque = centerOfGravity * mass * 9.81 * sin(kalman_pred[0]) * gear_ratio;
+
+    // flywheel motor input (constrained for safety)
+    float input = positionWeight * theoreticalTorque + rotationWeight * gyroX;
+
+    // monitoring purposes
+    Serial.print("angle:");
+    Serial.print(kalman_pred[0]);
+    Serial.print(",");
+    Serial.print("theoreticalTorque:");
+    Serial.print(theoreticalTorque);
+    Serial.print(",");
+    Serial.print("gyroX:");
+    Serial.print(gyroX);
+    Serial.print(",");
+    Serial.print("input:");
+    Serial.println(input);
+
+    float speed = getFlywheelMotorSpeed();
+    if (speed >= speed_max || speed <= -speed_max) { 
+      setFlywheelMotorTorque(0); 
+    }
+    else if (input > torque_max) {
+      setFlywheelMotorTorque(torque_max);
+    }
+    else if (input < -torque_max) { // IS TORQUE NEGATIVE IN ONE DIRECTION ====================================================================
+      setFlywheelMotorTorque(-torque_max);
+    }
+    else{
+      setFlywheelMotorTorque(input);
+    }
   
-  // =============================================
-  lastTime = currentTime;
+    lastTime = currentTime;
+  }
+  // end of programm, stop motor and infinite wait
+  flywheelMotorStop();
+  Serial.println("end");
+  while (true) {
+    delay(1000);
+  }
+
 }
 
 // calculates tilt angle from sensor readings
@@ -80,4 +188,20 @@ void angleCalculator(float accelY, float accelZ, float gyroX, float* last_step, 
   // update uncertainty
   last_step[1] = (1 - gain) * uncertainty;
 
+}
+
+
+void flywheelMotorStop(){
+//  Serial.println("MOTOR STOP");
+  odrive.setTorque(0);
+}
+
+float getFlywheelMotorSpeed(){
+//  Serial.println("GET MOTOR SPEED");
+  return odrive.getVelocity();
+}
+
+void setFlywheelMotorTorque(float torque){
+//  Serial.println("SET MOTOR TORQUE");
+  odrive.setTorque(torque);
 }
