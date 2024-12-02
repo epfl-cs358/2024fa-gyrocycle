@@ -17,9 +17,9 @@ ODriveUART odrive(odrive_serial);
 
 Adafruit_MPU6050 mpu;
 // manually calibrate MPU6050 readings
-float accelYoffset = -0.08;
-float accelZoffset = 0.14;
-float gyroXoffset = 0.0;
+const float accelYoffset = -0.08;
+const float accelZoffset = 0.14;
+const float gyroXoffset = 0.0;
 
 float kalman_pred[] = {0, 0.06981}; // angle and uncertainty at each step, 0.06981 corresponds to 4 deg of uncertainty on the first step
 
@@ -27,17 +27,17 @@ unsigned long lastTime = 0;
 unsigned long currentTime = 0;
 
 // Motor safety limits
-float speed_max = 10;
-float torque_max = 0.1; 
+const float speed_max = 10;
+const float torque_max = 0.1;
 
 // model characteristics
-float mass = 1; // in kg
-float centerOfGravity = 0.15; // in meters
+const float mass = 1; // in kg
+const float centerOfGravity = 0.15; // in meters
 
 // basic balancing constants
-float positionWeight = 1;
-float rotationWeight = 0.1;
-float gear_ratio = 0.08; // should be 0.5 I think
+const float positionWeight = 1;
+const float rotationWeight = 0.1;
+const float gear_ratio = 0.08; // should be 0.5 I think
 
 
 
