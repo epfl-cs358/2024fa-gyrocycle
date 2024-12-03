@@ -3,18 +3,6 @@
 #include <Wire.h>
 #include <math.h>
 
-#include <ODriveUART.h>
-#include <SoftwareSerial.h>
-
-// odrive
-// pin 8: RX - connect to ODrive TX
-// pin 9: TX - connect to ODrive RX
-SoftwareSerial odrive_serial(8, 9);
-unsigned long baudrate = 115200; // Must match what you configure on the ODrive (see docs for details)
-
-ODriveUART odrive(odrive_serial);
-
-
 Adafruit_MPU6050 mpu;
 // manually calibrate MPU6050 readings
 const float accelYoffset = -0.08;
@@ -25,10 +13,6 @@ float kalman_pred[] = {0, 0.06981}; // angle and uncertainty at each step, 0.069
 
 unsigned long lastTime = 0;
 unsigned long currentTime = 0;
-
-// Motor safety limits
-const float speed_max = 10;
-const float torque_max = 0.1;
 
 // model characteristics
 const float mass = 1; // in kg
@@ -43,7 +27,6 @@ const float gear_ratio = 0.08; // should be 0.5 I think
 
 void setup(void) {
   Serial.begin(9600);
-  odrive_serial.begin(baudrate);
 
   while (!Serial)
     delay(10); 
@@ -64,26 +47,8 @@ void setup(void) {
   mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
   delay(100);
   // =============================================
-
-  Serial.println("Waiting for ODrive...");
-  while (odrive.getState() == AXIS_STATE_UNDEFINED) {
-    delay(100);
-  }
-
-  Serial.println("found ODrive");
-  
-  Serial.print("DC voltage: ");
-  Serial.println(odrive.getParameterAsFloat("vbus_voltage"));
-  
-  Serial.println("Enabling closed loop control...");
-  while (odrive.getState() != AXIS_STATE_CLOSED_LOOP_CONTROL) {
-    odrive.clearErrors();
-    odrive.setState(AXIS_STATE_CLOSED_LOOP_CONTROL);
-    delay(10);
-  }
-  
-  Serial.println("ODrive running!");
-  // ========================================
+  initOdriveCommunication();
+  // =============================================
 
   Serial.println("SET OFFSETS AND MAX SPEED AND ACCELERATION CORRECTLY!");
   delay(1000);
@@ -149,23 +114,18 @@ void loop() {
     Serial.println(input);
 
     float speed = getFlywheelMotorSpeed();
-    if (speed >= speed_max || speed <= -speed_max) { 
-      setFlywheelMotorTorque(0); 
+    if (flywheelMotorSpeedOutOfBounds()) {
+      stopFlywheelMotor();
     }
-    else if (input > torque_max) {
-      setFlywheelMotorTorque(torque_max);
-    }
-    else if (input < -torque_max) { // IS TORQUE NEGATIVE IN ONE DIRECTION ====================================================================
-      setFlywheelMotorTorque(-torque_max);
-    }
-    else{
+    else {
+      // The safety bounds are applied within the function
       setFlywheelMotorTorque(input);
     }
   
     lastTime = currentTime;
   }
   // end of programm, stop motor and infinite wait
-  flywheelMotorStop();
+  stopFlywheelMotor();
   Serial.println("end");
   while (true) {
     delay(1000);
@@ -188,20 +148,4 @@ void angleCalculator(float accelY, float accelZ, float gyroX, float* last_step, 
   // update uncertainty
   last_step[1] = (1 - gain) * uncertainty;
 
-}
-
-
-void flywheelMotorStop(){
-//  Serial.println("MOTOR STOP");
-  odrive.setTorque(0);
-}
-
-float getFlywheelMotorSpeed(){
-//  Serial.println("GET MOTOR SPEED");
-  return odrive.getVelocity();
-}
-
-void setFlywheelMotorTorque(float torque){
-//  Serial.println("SET MOTOR TORQUE");
-  odrive.setTorque(torque);
 }
