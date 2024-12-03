@@ -3,12 +3,6 @@
 #include <Wire.h>
 #include <math.h>
 
-Adafruit_MPU6050 mpu;
-// manually calibrate MPU6050 readings
-const float accelYoffset = -0.08;
-const float accelZoffset = 0.14;
-const float gyroXoffset = 0.0;
-
 float kalman_pred[] = {0, 0.06981}; // angle and uncertainty at each step, 0.06981 corresponds to 4 deg of uncertainty on the first step
 
 unsigned long lastTime = 0;
@@ -26,31 +20,25 @@ const float gear_ratio = 0.08; // should be 0.5 I think
 
 
 void setup(void) {
+  // Start the Serial communication
   Serial.begin(9600);
 
+  // Wait for the Serial to be opened
   while (!Serial)
     delay(10); 
 
-  Serial.println("Found Adafruit MPU6050 chip");
-
-  // Try to initialize MPU6050
-  if (!mpu.begin()) {
-    Serial.println("Failed to find MPU6050 chip");
-    while (1) {
-      delay(10);
-    }
-  }
-  Serial.println("MPU6050 Found!");
-
-  mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
-  mpu.setGyroRange(MPU6050_RANGE_500_DEG);
-  mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
-  delay(100);
-  // =============================================
+  // Start I2C communication with the MPU6050 gyroscope sensor
+  initMpuCommunication();
+  
+  // Start UART communication with ODrive motor controller
   initOdriveCommunication();
-  // =============================================
 
-  Serial.println("SET OFFSETS AND MAX SPEED AND ACCELERATION CORRECTLY!");
+  Serial.println("Setup complete.");
+  Serial.println("Starting in 3...");
+  delay(1000);
+  Serial.println("2...");
+  delay(1000);
+  Serial.println("1...");
   delay(1000);
 }
 
@@ -60,20 +48,18 @@ void loop() {
 
     currentTime = millis(); 
 
-    sensors_event_t a, g, temp;
-    mpu.getEvent(&a, &g, &temp);
+    float accelY, accelZ, gyroX;
+    mpuMeasure(&accelY, &accelZ, &gyroX);
 
     // print values for calibration
-    Serial.print(a.acceleration.y - accelYoffset);
+    Serial.print(accelY);
     Serial.print(",");
-    Serial.print(a.acceleration.z - accelZoffset);
+    Serial.print(accelZ);
     Serial.print(",");
-    Serial.println(a.gyro.x - gyroXoffset);
-
+    Serial.println(gyroX);
 
     // rotation rate around X axis and angle from vertical
-    float gyroX = g.gyro.x - gyroXoffset;
-    angleCalculator(a.acceleration.y - accelYoffset, a.acceleration.z - accelZoffset, gyroX, kalman_pred, currentTime - lastTime);
+    angleCalculator(accelY, accelZ, gyroX, kalman_pred, currentTime - lastTime);
 
     Serial.print("angle:");
     Serial.println(kalman_pred[0]);
@@ -85,14 +71,12 @@ void loop() {
     
     currentTime = millis(); 
 
-    sensors_event_t a, g, temp;
-    mpu.getEvent(&a, &g, &temp);
+    float accelY, accelZ, gyroX;
+    mpuMeasure(&accelY, &accelZ, &gyroX);
 
     // rotation rate around X axis and angle from vertical
-    float gyroX = g.gyro.x - gyroXoffset;
-    angleCalculator(a.acceleration.y - accelYoffset, a.acceleration.z - accelZoffset, gyroX, kalman_pred, currentTime - lastTime);
+    angleCalculator(accelY, accelZ, gyroX, kalman_pred, currentTime - lastTime);
 
-    
 
     // theoretical torque from gravity
     float theoreticalTorque = centerOfGravity * mass * 9.81 * sin(kalman_pred[0]) * gear_ratio;
