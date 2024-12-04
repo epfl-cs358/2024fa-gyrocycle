@@ -1,0 +1,164 @@
+//////////////////////////////////////////////
+//        RemoteXY include library          //
+//////////////////////////////////////////////
+
+// Debug logging to Serial at 115200 can be enabled
+//#define REMOTEXY_DEBUGLOG
+
+// RemoteXY will select the connection mode and include necessary libraries
+#define REMOTEXY_MODE__ESP32CORE_BLE
+
+#include <BLEDevice.h>
+
+// Setup RemoteXY connection settings
+#define REMOTEXY_BLUETOOTH_NAME "RemoteXY"
+
+#include <RemoteXY.h>
+#include <ESP32Servo.h>
+
+// RemoteXY GUI configuration that will be sent to the connecting device
+#pragma pack(push, 1)  
+uint8_t RemoteXY_CONF[] =   // 36 bytes
+  { 255,2,0,0,0,29,0,19,0,0,0,0,31,1,200,84,1,1,2,0,
+  4,174,3,16,77,48,2,26,4,3,32,77,16,176,2,26 };
+
+// This structure defines all the variables and events of your control interface 
+// 
+struct {
+    // input variables
+  int8_t speedSlider; // from -100 to 100
+  int8_t steeringSlider; // from -100 to 100
+
+    // other variable
+  uint8_t connect_flag;  // =1 if wire connected, else =0
+
+} RemoteXY;   
+#pragma pack(pop)
+
+/////////////////////////////////////////////
+//           END RemoteXY include          //
+/////////////////////////////////////////////
+
+// The propulsion motor driver has two input pins IN1 and IN2 that must be
+// wired to PWM pins on the microcontroller.
+#define PROPULSION_PIN_1 13 // IN1
+#define PROPULSION_PIN_2 12 // IN2
+
+// Pin to wire the Servo used for steering to
+#define STEERING_SERVO_PIN 2
+
+// Limit how much the Servo can steer
+#define MAX_STEERING_ANGLE 60
+
+unsigned long motionLastUpdate = 0;
+// Update every 50ms
+const unsigned long motionUpdateInterval = 50;
+
+// Servo object for communication with the Servo motor responsible for steering
+Servo steeringServo;
+
+void initMotion() {
+  RemoteXY_Init();
+
+  // Initialize motor control pins as output
+  pinMode(PROPULSION_PIN_1, OUTPUT);
+  pinMode(PROPULSION_PIN_2, OUTPUT);
+  pinMode(STEERING_SERVO_PIN, OUTPUT);
+
+  // Make sure the motors are not when starting the bike
+  stopPropulsionMotor();
+
+  // Initialize (and calibrate) the Servo
+  steeringServo.attach(STEERING_SERVO_PIN);
+}
+
+void handleRemoteControlEvents() {
+  RemoteXY_Handler();
+
+  unsigned long currentTime = millis();
+
+  // Avoid updating too often
+  if (currentTime - motionLastUpdate < motionUpdateInterval) {
+    return;
+  }
+
+  motionLastUpdate = currentTime;
+
+  // Map the speed slider value (-100 to 100) to PWM signal (0 to 255)
+  int motorSpeed = map(abs(RemoteXY.speedSlider), 0, 100, 0, 255);
+  // Direction: forward if >= 0, backward otherwise
+  bool motorDirection = RemoteXY.speedSlider >= 0;
+
+  // Map the steering slider value (-100 to 100) to servo angle (0 to 180)
+  int steeringAngle = map(RemoteXY.steeringSlider, 100, -100, 90 - MAX_STEERING_ANGLE, 90 + MAX_STEERING_ANGLE);
+
+  // Print values for debugging
+    Serial.print("Speed Slider: ");
+    Serial.print(RemoteXY.speedSlider);
+    Serial.print(" | Steering Slider: ");
+    Serial.print(RemoteXY.steeringSlider);
+    Serial.print(" | Motor Speed: ");
+    Serial.print(motorSpeed);
+    Serial.print(" | Steering Angle: ");
+    Serial.println(steeringAngle);
+
+    // Update the Servo angle for steering
+    steeringServo.write(steeringAngle);
+
+    // Update the speed of the propulsion motor
+    if (motorSpeed == 0) {
+      stopPropulsionMotor();
+    }
+    else {
+      if (motorDirection) {
+        propulsionForward(motorSpeed);
+      }
+      else {
+        propulsionBackward(motorSpeed);
+      }
+    }
+}
+
+/**
+ * Makes the propulsion motor go forward at the provided speed.
+ *
+ * The speed must be between 0 and 255 (both included). Other values will be
+ * ignored (motor speed won't be changed) and an error message will be printed
+ * to Serial.
+ */
+void propulsionForward(int motorSpeed) {
+  if (motorSpeed < 0 || 255 < motorSpeed) {
+    Serial.print("propulsionForward called with speed out of bounds: ");
+    Serial.println(motorSpeed);
+    return;
+  }
+
+  analogWrite(PROPULSION_PIN_1, motorSpeed);
+  analogWrite(PROPULSION_PIN_2, LOW);
+}
+
+/**
+ * Makes the propulsion motor go backward at the provided speed.
+ *
+ * The speed must be between 0 and 255 (both included). Other values will be
+ * ignored (motor speed won't be changed) and an error message will be printed
+ * to Serial.
+ */
+void propulsionBackward(int motorSpeed) {
+  if (motorSpeed < 0 || 255 < motorSpeed) {
+    Serial.print("propulsionBackward called with speed out of bounds: ");
+    Serial.println(motorSpeed);
+    return;
+  }
+
+  analogWrite(PROPULSION_PIN_1, LOW);
+  analogWrite(PROPULSION_PIN_2, motorSpeed);
+}
+
+/**
+ * Stops the propulsion motor completely. Does not block until the motor has stopped.
+ */
+void stopPropulsionMotor() {
+  analogWrite(PROPULSION_PIN_1, LOW);
+  analogWrite(PROPULSION_PIN_2, LOW);
+}
