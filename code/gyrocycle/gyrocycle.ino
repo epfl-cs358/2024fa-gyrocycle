@@ -3,6 +3,8 @@
 #include <Wire.h>
 #include <math.h>
 
+#define GEAR_RATIO 0.5
+
 float kalman_pred[] = {0, 0.06981}; // angle and uncertainty at each step, 0.06981 corresponds to 4 deg of uncertainty on the first step
 
 unsigned long lastTime = 0;
@@ -13,9 +15,8 @@ const float mass = 1; // in kg
 const float centerOfGravity = 0.15; // in meters
 
 // basic balancing constants
-const float positionWeight = 1;
+const float positionWeight = 1.2;
 const float rotationWeight = 0.1;
-const float gear_ratio = 0.08; // should be 0.5 I think
 
 
 
@@ -79,7 +80,7 @@ void loop() {
 
 
     // theoretical torque from gravity
-    float theoreticalTorque = centerOfGravity * mass * 9.81 * sin(kalman_pred[0]) * gear_ratio;
+    float theoreticalTorque = centerOfGravity * mass * 9.81 * sin(kalman_pred[0]) * GEAR_RATIO;
 
     // flywheel motor input (constrained for safety)
     float input = positionWeight * theoreticalTorque + rotationWeight * gyroX;

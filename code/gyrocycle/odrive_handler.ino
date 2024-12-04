@@ -12,8 +12,8 @@
 #define ODRIVE_BAUD 115200
 
 // Some safety constants
-#define FLYWHEEL_MAX_SPEED 10
-#define FLYWHEEL_MAX_TORQUE 0.1
+#define FLYWHEEL_MAX_SPEED 30
+#define FLYWHEEL_MAX_TORQUE 1
 
 // Create a serial communication channel between the ESP32 and the ODrive
 HardwareSerial odrive_serial(SERIAL2);

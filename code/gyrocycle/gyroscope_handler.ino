@@ -11,7 +11,7 @@ Adafruit_MPU6050 mpu;
  */
 float accelYoffset = -0.08;
 float accelZoffset = 0.14;
-float gyroXoffset = 0.0;
+float gyroXoffset = -0.12;
 
 /**
  * Prepares everything for a smooth communication with the MPU6050 sensor.
