@@ -57,7 +57,7 @@ void initMpuCommunication() {
 void calibrateMpu() {
   Serial.println("Calibration mode started.");
   Serial.println("Adjust the offsets and type 'done' when finished.");
-  Serial.println("Use 'help' for a list of available commands.")
+  Serial.println("Use 'help' for a list of available commands.");
 
   // Start the calibration loop
   while (true) {
@@ -88,9 +88,9 @@ void calibrateMpu() {
         Serial.println("End the interactive calibration process with 'done'.");
       }
       else if (command.startsWith("set ")) {
-        String parts = command.split(" ");
-        String name = parts[1];
-        float value = parts[2].toFloat();
+        String name = command.substring(4);
+        float value = name.substring(name.indexOf(' ') + 1).toFloat();
+        
         if (name == "accelY") {
           accelYoffset = value;
           Serial.print("New accelY offset: ");
