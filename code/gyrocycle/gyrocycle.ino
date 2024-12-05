@@ -4,8 +4,12 @@
 #include <math.h>
 
 #define GEAR_RATIO 0.5
+#define INITIAL_KALMAN_ANGLE 0
+// 0.06981 corresponds to 4 deg of uncertainty on the first step
+#define INITIAL_KALMAN_UNCERTAINTY 0.06981
 
-float kalman_pred[] = {0, 0.06981}; // angle and uncertainty at each step, 0.06981 corresponds to 4 deg of uncertainty on the first step
+// Angle and uncertainty at each step
+float kalman_pred[] = {INITIAL_KALMAN_ANGLE, INITIAL_KALMAN_UNCERTAINTY};
 
 unsigned long lastTime = 0;
 unsigned long currentTime = 0;
@@ -44,32 +48,57 @@ void setup(void) {
 }
 
 void loop() {
-  // Gyroscope readings printed out, waiting for start command
-  while (Serial.available() == 0 || Serial.readStringUntil('\n') != "start") {
+  // Start configuration mode, where the user can enter commands, calibrate,
+  // adjust values and then start the balancing mode.
+  configurationMode();
 
-    currentTime = millis(); 
+  // Start balancing mode, where the system tries to balance the flywheel.
+  // All the state is reset in the method call, so the system does not fail because
+  // of some previous state.
+  balancingMode();
+  // By this point the motor is already stopped.
 
-    float accelY, accelZ, gyroX;
-    mpuMeasure(&accelY, &accelZ, &gyroX);
+  // Go back to the configuration mode
+}
 
-    // print values for calibration
-    Serial.print(accelY);
-    Serial.print(",");
-    Serial.print(accelZ);
-    Serial.print(",");
-    Serial.println(gyroX);
+void configurationMode() {
+  Serial.println("Entering configuration mode. Type 'help' for a list of available commands.");
 
-    // rotation rate around X axis and angle from vertical
-    angleCalculator(accelY, accelZ, gyroX, kalman_pred, currentTime - lastTime);
-
-    Serial.print("angle:");
-    Serial.println(kalman_pred[0]);
-
-    lastTime = currentTime;
+  // Accept commands from the user in a loop to configure the system
+  while (true) {
+    if (Serial.available() > 0) {
+      String command = Serial.readStringUntil('\n');
+      if (command == "calibrate_mpu") {
+        calibrateMpu();
+      }
+      else if (command == "start") {
+        break;
+      }
+      else if (command == "help") {
+        Serial.println("Available commands:");
+        Serial.println("calibrate_mpu: Enters the calibration mode for the MPU6050.");
+        Serial.println("start: Exits the configuration mode and starts the balancing loop.");
+      }
+      else {
+        Serial.print("Unknown command: '");
+        Serial.print(command);
+        Serial.println("'.");
+      }
+    }
   }
-  // Balancing loop
+}
+
+void balancingMode() {
+  Serial.println("Preparing for balancing mode...");
+  Serial.println("Resetting state variables...");
+  kalman_pred[0] = INITIAL_KALMAN_ANGLE;
+  kalman_pred[1] = INITIAL_KALMAN_UNCERTAINTY;
+  lastTime = 0;
+  currentTime = 0;
+  Serial.println("State variables reset.");
+  Serial.println("Entering balancing mode.");
+
   while (kalman_pred[0] > (-M_PI / 4) && kalman_pred[0] < (M_PI / 4) && Serial.available() == 0) {
-    
     currentTime = millis(); 
 
     float accelY, accelZ, gyroX;
@@ -77,7 +106,6 @@ void loop() {
 
     // rotation rate around X axis and angle from vertical
     angleCalculator(accelY, accelZ, gyroX, kalman_pred, currentTime - lastTime);
-
 
     // theoretical torque from gravity
     float theoreticalTorque = centerOfGravity * mass * 9.81 * sin(kalman_pred[0]) * GEAR_RATIO;
@@ -109,13 +137,10 @@ void loop() {
   
     lastTime = currentTime;
   }
-  // end of programm, stop motor and infinite wait
-  stopFlywheelMotor();
-  Serial.println("end");
-  while (true) {
-    delay(1000);
-  }
 
+  Serial.println("Exiting balancing mode, stopping motor...");
+  stopFlywheelMotor();
+  Serial.println("Motor stopped.");
 }
 
 // calculates tilt angle from sensor readings
