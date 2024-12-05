@@ -50,6 +50,84 @@ void initMpuCommunication() {
 }
 
 /**
+ * To be called as a user command. Starts an interactive calibration process
+ * where the values of the acceleration and gyroscope are printed to Serial
+ * and the user can adjust the offsets manually.
+ */
+void calibrateMpu() {
+  Serial.println("Calibration mode started.");
+  Serial.println("Adjust the offsets and type 'done' when finished.");
+  Serial.println("Use 'help' for a list of available commands.")
+
+  // Start the calibration loop
+  while (true) {
+    // Measure the sensor
+    float accelY, accelZ, gyroX;
+    mpuMeasure(&accelY, &accelZ, &gyroX);
+
+    // Print the values so that they can be plotted on Arduino IDE's
+    // Serial Plotter with labels
+    Serial.print("Adjusted accelY:");
+    Serial.print(accelY);
+    Serial.print(",Adjusted accelZ:");
+    Serial.print(accelZ);
+    Serial.print(",Adjusted gyroX:");
+    Serial.print(gyroX);
+    Serial.print(",Raw accelY:");
+    Serial.print(accelY + accelYoffset);
+    Serial.print(",Raw accelZ:");
+    Serial.print(accelZ + accelZoffset);
+    Serial.print(",Raw gyroX:");
+    Serial.println(gyroX + gyroXoffset);
+
+    // Check if the user has typed 'done'
+    if (Serial.available() > 0) {
+      String command = Serial.readStringUntil('\n');
+      if (command == "help") {
+        Serial.println("Set an offset manually by using 'set [accelY/accelZ/gyroX] <value>'.");
+        Serial.println("End the interactive calibration process with 'done'.");
+      }
+      else if (command.startsWith("set ")) {
+        String parts = command.split(" ");
+        String name = parts[1];
+        float value = parts[2].toFloat();
+        if (name == "accelY") {
+          accelYoffset = value;
+          Serial.print("New accelY offset: ");
+          Serial.println(accelYoffset);
+        }
+        else if (name == "accelZ") {
+          accelZoffset = value;
+          Serial.print("New accelZ offset: ");
+          Serial.println(accelZoffset);
+        }
+        else if (name == "gyroX") {
+          gyroXoffset = value;
+          Serial.print("New gyroX offset: ");
+          Serial.println(gyroXoffset);
+        }
+        else {
+          Serial.print("Unknown offset: '");
+          Serial.print(command);
+          Serial.println("'.");
+        }
+      }
+      else if (command == "done") {
+        break;
+      }
+      else if (command != NULL) {
+        Serial.print("Unknown command: '");
+        Serial.print(command);
+        Serial.println("'.");
+      }
+    }
+  }
+
+  // Inform the user the calibration is done
+  Serial.println("Calibration done.");
+}
+
+/**
  * Performs one measurement on the MPU6050 and sets the corresponding values to
  * the provided pointers, already adjusted with their respective offset.
  *
