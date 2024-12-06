@@ -50,6 +50,22 @@ void initMpuCommunication() {
 }
 
 /**
+ * Prints a list of configurable parameters for the MPU6050 sensor with their
+ * current values.
+ */
+void printMpuConfiguration() {
+  Serial.print("Offset for acceleration on Y axis: ");
+  Serial.println(accelYoffset);
+  Serial.print("Offset for acceleration on Z axis: ");
+  Serial.println(accelZoffset);
+  Serial.print("Offset for gyroscope on X axis: ");
+  Serial.println(gyroXoffset);
+  printlnAccelerometerRange();
+  printlnGyroRange();
+  printlnFilterBandwidth();
+}
+
+/**
  * To be called as a user command. Starts an interactive calibration process
  * where the values of the acceleration and gyroscope are printed to Serial
  * and the user can adjust the offsets manually.
@@ -91,24 +107,24 @@ void calibrateMpu() {
         String name = command.substring(4);
         float value = name.substring(name.indexOf(' ') + 1).toFloat();
         
-        if (name == "accelY") {
+        if (name.startsWith("accelY")) {
           accelYoffset = value;
           Serial.print("New accelY offset: ");
           Serial.println(accelYoffset);
         }
-        else if (name == "accelZ") {
+        else if (name.startsWith("accelZ")) {
           accelZoffset = value;
           Serial.print("New accelZ offset: ");
           Serial.println(accelZoffset);
         }
-        else if (name == "gyroX") {
+        else if (name.startsWith("gyroX")) {
           gyroXoffset = value;
           Serial.print("New gyroX offset: ");
           Serial.println(gyroXoffset);
         }
         else {
           Serial.print("Unknown offset: '");
-          Serial.print(command);
+          Serial.print(name);
           Serial.println("'.");
         }
       }

@@ -56,6 +56,13 @@ void initOdriveCommunication() {
 }
 
 /**
+ * Clears the errors of the ODrive.
+ */
+void clearFlywheelErrors() {
+  odrive.clearErrors();
+}
+
+/**
  * Completely stops the flywheel motor.
  */
 void stopFlywheelMotor() {

@@ -81,14 +81,59 @@ void configurationMode() {
       if (command == "calibrate_mpu") {
         calibrateMpu();
       }
+      else if (command == "clear_errors") {
+        clearFlywheelErrors();
+      }
+      else if (command == "print") {
+        Serial.println("===========================================");
+        Serial.println();
+        Serial.println("CURRENT CONFIGURATION");
+        Serial.println();
+        Serial.println("===========================================");
+        Serial.println("MPU6050:");
+        printMpuConfiguration();
+        Serial.println("===========================================");
+        Serial.println("PID:");
+        Serial.print("Kp: ");
+        Serial.println(Kp);
+        Serial.print("Ki: ");
+        Serial.println(Ki);
+        Serial.print("Kd: ");
+        Serial.println(Kd);
+        Serial.println("===========================================");
+      }
       else if (command == "start") {
         break;
       }
       else if (command == "help") {
-        Serial.println("Available commands:");
-        Serial.println("calibrate_mpu: Enters the calibration mode for the MPU6050.");
-        Serial.println("start: Exits the configuration mode and starts the balancing loop.");
-        Serial.println("algo [PID/OG]: Sets the controller mode to PID or Original (OG).");
+        Serial.println("===========================================");
+        Serial.println();
+        Serial.println("AVAILABLE COMMANDS");
+        Serial.println();
+        Serial.println("===========================================");
+        Serial.println();
+        Serial.println("---------------- algo [PID/OG]");
+        Serial.println("Sets the controller mode to PID or original (OG).");
+        Serial.println();
+        Serial.println("---------------- calibrate_mpu");
+        Serial.println("Enters calibration mode for the MPU6050 to set the offsets.");
+        Serial.println();
+        Serial.println("---------------- clear_errors");
+        Serial.println("Clears the errors of the ODrive driver so that the motor can keep going.");
+        Serial.println();
+        Serial.println("---------------- help");
+        Serial.println("Displays a list of the existing commands.");
+        Serial.println();
+        Serial.println("---------------- print");
+        Serial.println("Prints the current configuration with all necessary value to write them down somewhere.");
+        Serial.println();
+        Serial.println("---------------- set [Kp/Ki/Kd] <value>");
+        Serial.println("Sets the named value (Kp, Ki or Kd) to the provided value.");
+        Serial.println();
+        Serial.println("---------------- start");
+        Serial.println("Exits the configuration mode and starts the balancing loop.");
+        Serial.println();
+        Serial.println("===========================================");
       }
       else if (command.startsWith("algo ")) {
         String parts = command.substring(5);
@@ -175,7 +220,7 @@ void balancingMode() {
 
     float speed = getFlywheelMotorSpeed();
     if (flywheelMotorSpeedOutOfBounds()) {
-      stopFlywheelMotor();
+      setFlywheelMotorTorque(0.2);
     }
     else {
       // The safety bounds are applied within the function
