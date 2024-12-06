@@ -7,6 +7,7 @@
 #define INITIAL_KALMAN_ANGLE 0
 // 0.06981 corresponds to 4 deg of uncertainty on the first step
 #define INITIAL_KALMAN_UNCERTAINTY 0.06981
+#define TORQUE_FOR_CONSTANT_SPEED 0.018
 
 // Angle and uncertainty at each step
 float kalman_pred[] = {INITIAL_KALMAN_ANGLE, INITIAL_KALMAN_UNCERTAINTY};
@@ -15,7 +16,7 @@ unsigned long lastTime = 0;
 unsigned long currentTime = 0;
 
 // model characteristics
-const float mass = 1; // in kg
+const float mass = 2; // in kg
 const float centerOfGravity = 0.15; // in meters
 
 // basic balancing constants
@@ -125,6 +126,9 @@ void configurationMode() {
         Serial.println("---------------- set [Kp/Ki/Kd/max_fw_speed/max_fw_torque] <value>");
         Serial.println("Sets the named value (Kp, Ki or Kd) to the provided value.");
         Serial.println();
+        Serial.println("---------------- debug");
+        Serial.println("Prints reached maxima in prior testing and resets detectors");
+        Serial.println();
         Serial.println("---------------- start");
         Serial.println("Exits the configuration mode and starts the balancing loop.");
         Serial.println();
@@ -189,6 +193,9 @@ void configurationMode() {
           Serial.println("'.");
         }
       }
+      else if (command == "debug") {
+        printMaxReached();
+      }
       else if (command == "start") {
         break;
       }
@@ -221,11 +228,14 @@ void balancingMode() {
     // rotation rate around X axis and angle from vertical
     angleCalculator(accelY, accelZ, gyroX, kalman_pred, currentTime - lastTime);
 
-    // theoretical torque from gravity
-    float theoreticalTorque = centerOfGravity * mass * 9.81 * sin(kalman_pred[0]) * GEAR_RATIO;
-
     // flywheel motor input (constrained for safety)
-    float input = positionWeight * theoreticalTorque + rotationWeight * gyroX;
+    float input = 0;
+    if (controllerMode == "PID"){
+      input = pidBalancingImplementation(currentTime - lastTime, kalman_pred[0]);
+    }
+    else if (controllerMode == "OG"){
+      input = ogBalancingImplementation(gyroX, kalman_pred[0]);
+    }
 
     // monitoring purposes
     Serial.print("angle:");
@@ -235,11 +245,18 @@ void balancingMode() {
     Serial.print(gyroX);
     Serial.print(",");
     Serial.print("input:");
-    Serial.println(input);
+    Serial.print(input);
 
     float speed = getFlywheelMotorSpeed();
-    if (flywheelMotorSpeedOutOfBounds()) {
-      setFlywheelMotorTorque(0.2);
+    Serial.print(",");
+    Serial.print("speed:");
+    Serial.println(speed);
+
+    if (flywheelMotorSpeedOverUpperBound() && input > TORQUE_FOR_CONSTANT_SPEED) {
+      setFlywheelMotorTorque(TORQUE_FOR_CONSTANT_SPEED);
+    }
+    else if (flywheelMotorSpeedUnderLowerBound() && input < -TORQUE_FOR_CONSTANT_SPEED) {
+      setFlywheelMotorTorque(-TORQUE_FOR_CONSTANT_SPEED);
     }
     else {
       // The safety bounds are applied within the function
@@ -263,7 +280,7 @@ void balancingMode() {
  * @param angle The angle from the vertical, calculated with the accelerometer.
  * @return float The torque that should be applied to the flywheel motor.
  */
-float ogBalancingImplementation(float accelY, float accelZ, float gyroX, float angle) {
+float ogBalancingImplementation(float gyroX, float angle) {
   // Calculate the theoretical torque that should be applied to the flywheel motor
   float theoreticalTorque = centerOfGravity * mass * 9.81 * sin(angle) * GEAR_RATIO;
 

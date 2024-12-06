@@ -14,6 +14,9 @@
 // Some safety constants
 float flywheelMaxSpeed = 30;
 float flywheelMaxTorque = 1;
+// boolean to check if the limits have been hit
+float absSpeedReached = 0;
+float absTorqueReached = 0;
 
 // Create a serial communication channel between the ESP32 and the ODrive
 HardwareSerial odrive_serial(SERIAL2);
@@ -154,16 +157,35 @@ void stopFlywheelMotor() {
  * Retrieves the current speed from the ODrive and returns the value.
  */
 float getFlywheelMotorSpeed() {
-  return odrive.getVelocity();
+  float speed = odrive.getVelocity();
+
+  // used for deugging
+  if (speed > absSpeedReached) {
+    absSpeedReached = speed;
+  }
+  if (-speed > absSpeedReached) {
+    absSpeedReached = -speed;
+  }
+
+  return speed;
 }
 
 /**
- * Returns false if the current flywheel motor speed is within safe bounds. Returns
+ * Returns false if the current flywheel motor speed lower than the upper bound. Returns
  * true otherwise.
  */
-bool flywheelMotorSpeedOutOfBounds() {
+bool flywheelMotorSpeedOverUpperBound() {
   float speed = getFlywheelMotorSpeed();
-  return speed >= flywheelMaxSpeed || speed <= -flywheelMaxSpeed;
+  return speed >= flywheelMaxSpeed;
+}
+
+/**
+ * Returns false if the current flywheel motor speed higher than the lower bound. Returns
+ * true otherwise.
+ */
+bool flywheelMotorSpeedUnderLowerBound() {
+  float speed = getFlywheelMotorSpeed();
+  return speed <= -flywheelMaxSpeed;
 }
 
 /**
@@ -174,6 +196,15 @@ bool flywheelMotorSpeedOutOfBounds() {
  * function can pass any torque, it will get clamped by the function.
  */
 void setFlywheelMotorTorque(float torque) {
+  // used for deugging
+  if (torque > absTorqueReached) {
+    absTorqueReached = torque;
+  }
+  if (-torque > absTorqueReached) {
+    absTorqueReached = -torque;
+  }
+
+
   if (torque > flywheelMaxTorque) {
     odrive.setTorque(flywheelMaxTorque);
   }
@@ -183,4 +214,16 @@ void setFlywheelMotorTorque(float torque) {
   else {
     odrive.setTorque(torque);
   }
+}
+/**
+ * Debug function
+ */
+void printMaxReached(){
+  Serial.print("Velocity reached during testing : ");
+  Serial.println(absSpeedReached);
+  Serial.print("Torue reached during testing (desired torque before clamping): ");
+  Serial.println(absTorqueReached);
+  Serial.println("Reseting detectors");
+  absSpeedReached = 0;
+  absTorqueReached = 0;
 }
