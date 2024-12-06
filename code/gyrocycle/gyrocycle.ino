@@ -78,32 +78,24 @@ void configurationMode() {
   while (true) {
     if (Serial.available() > 0) {
       String command = Serial.readStringUntil('\n');
-      if (command == "calibrate_mpu") {
+      if (command.startsWith("algo ")) {
+        String parts = command.substring(5);
+        if (parts == "PID" || parts == "OG") {
+          controllerMode = parts;
+          Serial.print("Controller mode set to: ");
+          Serial.println(controllerMode);
+        }
+        else {
+          Serial.print("Unknown controller mode: '");
+          Serial.print(parts);
+          Serial.println("'.");
+        }
+      }
+      else if (command == "calibrate_mpu") {
         calibrateMpu();
       }
       else if (command == "clear_errors") {
         clearFlywheelErrors();
-      }
-      else if (command == "print") {
-        Serial.println("===========================================");
-        Serial.println();
-        Serial.println("CURRENT CONFIGURATION");
-        Serial.println();
-        Serial.println("===========================================");
-        Serial.println("MPU6050:");
-        printMpuConfiguration();
-        Serial.println("===========================================");
-        Serial.println("PID:");
-        Serial.print("Kp: ");
-        Serial.println(Kp);
-        Serial.print("Ki: ");
-        Serial.println(Ki);
-        Serial.print("Kd: ");
-        Serial.println(Kd);
-        Serial.println("===========================================");
-      }
-      else if (command == "start") {
-        break;
       }
       else if (command == "help") {
         Serial.println("===========================================");
@@ -127,7 +119,7 @@ void configurationMode() {
         Serial.println("---------------- print");
         Serial.println("Prints the current configuration with all necessary value to write them down somewhere.");
         Serial.println();
-        Serial.println("---------------- set [Kp/Ki/Kd] <value>");
+        Serial.println("---------------- set [Kp/Ki/Kd/max_fw_speed/max_fw_torque] <value>");
         Serial.println("Sets the named value (Kp, Ki or Kd) to the provided value.");
         Serial.println();
         Serial.println("---------------- start");
@@ -135,18 +127,26 @@ void configurationMode() {
         Serial.println();
         Serial.println("===========================================");
       }
-      else if (command.startsWith("algo ")) {
-        String parts = command.substring(5);
-        if (parts == "PID" || parts == "OG") {
-          controllerMode = parts;
-          Serial.print("Controller mode set to: ");
-          Serial.println(controllerMode);
-        }
-        else {
-          Serial.print("Unknown controller mode: '");
-          Serial.print(parts);
-          Serial.println("'.");
-        }
+      else if (command == "print") {
+        Serial.println("===========================================");
+        Serial.println();
+        Serial.println("CURRENT CONFIGURATION");
+        Serial.println();
+        Serial.println("===========================================");
+        Serial.println("ODrive:");
+        printOdriveConfiguration();
+        Serial.println("===========================================");
+        Serial.println("MPU6050:");
+        printMpuConfiguration();
+        Serial.println("===========================================");
+        Serial.println("PID:");
+        Serial.print("Kp: ");
+        Serial.println(Kp);
+        Serial.print("Ki: ");
+        Serial.println(Ki);
+        Serial.print("Kd: ");
+        Serial.println(Kd);
+        Serial.println("===========================================");
       }
       else if (command.startsWith("set ")) {
         String name = command.substring(4);
@@ -167,11 +167,24 @@ void configurationMode() {
           Serial.print("New Kd: ");
           Serial.println(Kd);
         }
+        else if (name.startsWith("max_fw_speed ")) {
+          setFlywheelMaxSpeed(value);
+          Serial.print("New max flywheel speed: ");
+          Serial.println(value);
+        }
+        else if (name.startsWith("max_fw_torque ")) {
+          setFlywheelMaxTorque(value);
+          Serial.print("New max flywheel torque: ");
+          Serial.println(value);
+        }
         else {
           Serial.print("Unknown constant: '");
           Serial.print(name);
           Serial.println("'.");
         }
+      }
+      else if (command == "start") {
+        break;
       }
       else {
         Serial.print("Unknown command: '");

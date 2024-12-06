@@ -12,8 +12,8 @@
 #define ODRIVE_BAUD 115200
 
 // Some safety constants
-#define FLYWHEEL_MAX_SPEED 30
-#define FLYWHEEL_MAX_TORQUE 1
+float flywheelMaxSpeed = 30;
+float flywheelMaxTorque = 1;
 
 // Create a serial communication channel between the ESP32 and the ODrive
 HardwareSerial odrive_serial(SERIAL2);
@@ -55,6 +55,29 @@ void initOdriveCommunication() {
   Serial.println("ODrive running.");
 }
 
+void printOdriveConfiguration() {
+  Serial.print("Maximum speed: ");
+  Serial.println(flywheelMaxSpeed);
+  Serial.print("Maximum torque: ");
+  Serial.println(flywheelMaxTorque);
+}
+
+/**
+ * Sets the maximum speed for the ODrive. DOES NOT set the maximum speed in the ODrive's
+ * configuration itself, only locally in the MCU's code.
+ */
+void setFlywheelMaxSpeed(float maxSpeed) {
+  flywheelMaxSpeed = maxSpeed;
+}
+
+/**
+ * Sets the maximum torque for the ODrive. DOES NOT set the maximum torque in the ODrive's
+ * configuration itself, only locally in the MCU's code.
+ */
+void setFlywheelMaxTorque(float maxTorque) {
+  flywheelMaxTorque = maxTorque;
+}
+
 /**
  * Clears the errors of the ODrive.
  */
@@ -82,7 +105,7 @@ float getFlywheelMotorSpeed() {
  */
 bool flywheelMotorSpeedOutOfBounds() {
   float speed = getFlywheelMotorSpeed();
-  return speed >= FLYWHEEL_MAX_SPEED || speed <= -FLYWHEEL_MAX_SPEED;
+  return speed >= flywheelMaxSpeed || speed <= -flywheelMaxSpeed;
 }
 
 /**
@@ -93,11 +116,11 @@ bool flywheelMotorSpeedOutOfBounds() {
  * function can pass any torque, it will get clamped by the function.
  */
 void setFlywheelMotorTorque(float torque) {
-  if (torque > FLYWHEEL_MAX_TORQUE) {
-    odrive.setTorque(FLYWHEEL_MAX_TORQUE);
+  if (torque > flywheelMaxTorque) {
+    odrive.setTorque(flywheelMaxTorque);
   }
-  else if (torque < -FLYWHEEL_MAX_TORQUE) {
-    odrive.setTorque(-FLYWHEEL_MAX_TORQUE);
+  else if (torque < -flywheelMaxTorque) {
+    odrive.setTorque(-flywheelMaxTorque);
   }
   else {
     odrive.setTorque(torque);
