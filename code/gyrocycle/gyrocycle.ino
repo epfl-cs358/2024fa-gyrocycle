@@ -22,7 +22,17 @@ const float centerOfGravity = 0.15; // in meters
 const float positionWeight = 1.2;
 const float rotationWeight = 0.1;
 
+// Which controller to use to determine what torque the flywheel should have
+String controllerMode = "PID";
 
+// Error terms for the PID controller
+float previous_error = 0.0;
+float total_error = 0.0;
+
+// PID constants
+float Kp = centerOfGravity * mass * 9.81 * GEAR_RATIO * positionWeight;
+float Ki = 0.0;
+float Kd = 0.0;
 
 void setup(void) {
   // Start the Serial communication
@@ -71,13 +81,97 @@ void configurationMode() {
       if (command == "calibrate_mpu") {
         calibrateMpu();
       }
+      else if (command == "clear_errors") {
+        clearFlywheelErrors();
+      }
+      else if (command == "print") {
+        Serial.println("===========================================");
+        Serial.println();
+        Serial.println("CURRENT CONFIGURATION");
+        Serial.println();
+        Serial.println("===========================================");
+        Serial.println("MPU6050:");
+        printMpuConfiguration();
+        Serial.println("===========================================");
+        Serial.println("PID:");
+        Serial.print("Kp: ");
+        Serial.println(Kp);
+        Serial.print("Ki: ");
+        Serial.println(Ki);
+        Serial.print("Kd: ");
+        Serial.println(Kd);
+        Serial.println("===========================================");
+      }
       else if (command == "start") {
         break;
       }
       else if (command == "help") {
-        Serial.println("Available commands:");
-        Serial.println("calibrate_mpu: Enters the calibration mode for the MPU6050.");
-        Serial.println("start: Exits the configuration mode and starts the balancing loop.");
+        Serial.println("===========================================");
+        Serial.println();
+        Serial.println("AVAILABLE COMMANDS");
+        Serial.println();
+        Serial.println("===========================================");
+        Serial.println();
+        Serial.println("---------------- algo [PID/OG]");
+        Serial.println("Sets the controller mode to PID or original (OG).");
+        Serial.println();
+        Serial.println("---------------- calibrate_mpu");
+        Serial.println("Enters calibration mode for the MPU6050 to set the offsets.");
+        Serial.println();
+        Serial.println("---------------- clear_errors");
+        Serial.println("Clears the errors of the ODrive driver so that the motor can keep going.");
+        Serial.println();
+        Serial.println("---------------- help");
+        Serial.println("Displays a list of the existing commands.");
+        Serial.println();
+        Serial.println("---------------- print");
+        Serial.println("Prints the current configuration with all necessary value to write them down somewhere.");
+        Serial.println();
+        Serial.println("---------------- set [Kp/Ki/Kd] <value>");
+        Serial.println("Sets the named value (Kp, Ki or Kd) to the provided value.");
+        Serial.println();
+        Serial.println("---------------- start");
+        Serial.println("Exits the configuration mode and starts the balancing loop.");
+        Serial.println();
+        Serial.println("===========================================");
+      }
+      else if (command.startsWith("algo ")) {
+        String parts = command.substring(5);
+        if (parts == "PID" || parts == "OG") {
+          controllerMode = parts;
+          Serial.print("Controller mode set to: ");
+          Serial.println(controllerMode);
+        }
+        else {
+          Serial.print("Unknown controller mode: '");
+          Serial.print(parts);
+          Serial.println("'.");
+        }
+      }
+      else if (command.startsWith("set ")) {
+        String name = command.substring(4);
+        float value = name.substring(name.indexOf(' ') + 1).toFloat();
+
+        if (name.startsWith("Kp ")) {
+          Kp = value;
+          Serial.print("New Kp: ");
+          Serial.println(Kp);
+        }
+        else if (name.startsWith("Ki ")) {
+          Ki = value;
+          Serial.print("New Ki: ");
+          Serial.println(Ki);
+        }
+        else if (name.startsWith("Kd ")) {
+          Kd = value;
+          Serial.print("New Kd: ");
+          Serial.println(Kd);
+        }
+        else {
+          Serial.print("Unknown constant: '");
+          Serial.print(name);
+          Serial.println("'.");
+        }
       }
       else {
         Serial.print("Unknown command: '");
@@ -95,6 +189,7 @@ void balancingMode() {
   kalman_pred[1] = INITIAL_KALMAN_UNCERTAINTY;
   lastTime = 0;
   currentTime = 0;
+  total_error = 0.0;
   Serial.println("State variables reset.");
   Serial.println("Entering balancing mode.");
 
@@ -117,9 +212,6 @@ void balancingMode() {
     Serial.print("angle:");
     Serial.print(kalman_pred[0]);
     Serial.print(",");
-    Serial.print("theoreticalTorque:");
-    Serial.print(theoreticalTorque);
-    Serial.print(",");
     Serial.print("gyroX:");
     Serial.print(gyroX);
     Serial.print(",");
@@ -128,7 +220,7 @@ void balancingMode() {
 
     float speed = getFlywheelMotorSpeed();
     if (flywheelMotorSpeedOutOfBounds()) {
-      stopFlywheelMotor();
+      setFlywheelMotorTorque(0.2);
     }
     else {
       // The safety bounds are applied within the function
@@ -141,6 +233,51 @@ void balancingMode() {
   Serial.println("Exiting balancing mode, stopping motor...");
   stopFlywheelMotor();
   Serial.println("Motor stopped.");
+}
+
+/**
+ * @brief Original implementation of balancing.
+ *
+ * Performs some computations based on the current angle of the bike, and predicts
+ * the torque that should be applied to the flywheel motor.
+ * 
+ * @param angle The angle from the vertical, calculated with the accelerometer.
+ * @return float The torque that should be applied to the flywheel motor.
+ */
+float ogBalancingImplementation(float accelY, float accelZ, float gyroX, float angle) {
+  // Calculate the theoretical torque that should be applied to the flywheel motor
+  float theoreticalTorque = centerOfGravity * mass * 9.81 * sin(angle) * GEAR_RATIO;
+
+  // Calculate the input to the flywheel motor
+  float input = positionWeight * theoreticalTorque + rotationWeight * gyroX;
+
+  return input;
+}
+
+/**
+ * @brief Implementation of balancing algorithm using a PID controller.
+ * 
+ * @param elapsedTime The time elapsed since the last iteration of the PID controller.
+ * @param angle The angle from the vertical, calculated with the accelerometer.
+ * 
+ * @return float The torque that should be applied to the flywheel motor.
+ */
+float pidBalancingImplementation(long elapsedTime, float angle) {
+  // The error of this controller is the angle from the vertical
+  float error = angle - 0;
+
+  // Accumulate the error for the integral (I) term
+  // TODO : Should we clamp the value of total_error?
+  total_error += error * elapsedTime;
+
+  // Calculate the derivative (D) term
+  float derivative = (error - previous_error) / elapsedTime;
+
+  // Update the previous error
+  previous_error = error;
+
+  // Calculate the input to the flywheel motor
+  return Kp * error + Ki * total_error + Kd * derivative;
 }
 
 // calculates tilt angle from sensor readings
