@@ -239,7 +239,7 @@ void balancingMode() {
 
     float speed = getFlywheelMotorSpeed();
     if (flywheelMotorSpeedOutOfBounds()) {
-      setFlywheelMotorTorque(0.2);
+      setFlywheelMotorTorque(0);
     }
     else {
       // The safety bounds are applied within the function
