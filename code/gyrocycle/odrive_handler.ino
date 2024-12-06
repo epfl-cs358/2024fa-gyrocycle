@@ -55,6 +55,64 @@ void initOdriveCommunication() {
   Serial.println("ODrive running.");
 }
 
+/**
+ * Starts a REPL session between the user and the ODrive. The user can enter any command they see fit,
+ * and those commands will be sent to the ODrive. One special command can be used to end the REPL session.
+ */
+void odriveRepl() {
+  String sendMessage;
+  String receivedMessage;
+
+  bool keepGoing = true;
+
+  Serial.println("===========================================");
+  Serial.println();
+  Serial.println("Starting ODrive REPL session");
+  Serial.println("Type 'done' or 'exit' to end the session.");
+  Serial.println();
+  Serial.println("===========================================");
+
+  while (keepGoing) {
+    while (odrive_serial.available() > 0) {
+      char receivedChar = odrive_serial.read();
+      if (receivedChar == '\n') {
+        // Print the received message to the Serial monitor
+        Serial.println(receivedMessage);
+        // Reset the received message
+        receivedMessage = "";
+      } else {
+        // Append characters to the received message
+        receivedMessage += receivedChar;
+      }
+    }
+
+    if (Serial.available() > 0) {
+      char inputChar = Serial.read();
+      if (inputChar == '\n') {
+        // Send the message through Serial1 with a newline character
+        Serial.println("> " + sendMessage);
+        if (sendMessage == "done" || sendMessage == "exit" || sendMessage == "quit") {
+          keepGoing = false;
+        }
+        else {
+          odrive_serial.println(sendMessage);
+        }
+        // Reset the message
+        sendMessage = "";
+      } else {
+        // Append characters to the message
+        sendMessage += inputChar;
+      }
+    }
+  }
+
+  Serial.println("===========================================");
+  Serial.println();
+  Serial.println("End of the REPL session");
+  Serial.println();
+  Serial.println("===========================================");
+}
+
 void printOdriveConfiguration() {
   Serial.print("Maximum speed: ");
   Serial.println(flywheelMaxSpeed);

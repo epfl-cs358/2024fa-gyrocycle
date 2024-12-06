@@ -119,6 +119,9 @@ void configurationMode() {
         Serial.println("---------------- print");
         Serial.println("Prints the current configuration with all necessary value to write them down somewhere.");
         Serial.println();
+        Serial.println("---------------- odrive_repl");
+        Serial.println("Starts a REPL session with the ODrive where you can enter commands for the ODrive directly.");
+        Serial.println();
         Serial.println("---------------- set [Kp/Ki/Kd/max_fw_speed/max_fw_torque] <value>");
         Serial.println("Sets the named value (Kp, Ki or Kd) to the provided value.");
         Serial.println();
@@ -147,6 +150,9 @@ void configurationMode() {
         Serial.print("Kd: ");
         Serial.println(Kd);
         Serial.println("===========================================");
+      }
+      else if (command == "odrive_repl") {
+        odriveRepl();
       }
       else if (command.startsWith("set ")) {
         String name = command.substring(4);
