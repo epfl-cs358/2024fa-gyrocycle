@@ -35,6 +35,32 @@ float Kp = centerOfGravity * mass * 9.81 * GEAR_RATIO * positionWeight;
 float Ki = 0.0;
 float Kd = 0.0;
 
+// Indicates whether the current running mode is configuration or balancing
+int isInConfigurationMode = 1;
+
+void switchMode() {
+  isInConfigurationMode = !isInConfigurationMode;
+  
+  // Once the state is updated, do some transition logic
+  if (isInConfigurationMode) {
+    Serial.println("Exiting balancing mode, stopping motor...");
+    stopFlywheelMotor();
+    Serial.println("Motor stopped.");
+    Serial.println("Entering configuration mode. Type 'help' for a list of available commands.");
+  }
+  else {
+    Serial.println("Preparing for balancing mode...");
+    Serial.println("Resetting state variables...");
+    kalman_pred[0] = INITIAL_KALMAN_ANGLE;
+    kalman_pred[1] = INITIAL_KALMAN_UNCERTAINTY;
+    lastTime = 0;
+    currentTime = 0;
+    total_error = 0.0;
+    Serial.println("State variables reset.");
+    Serial.println("Entering balancing mode.");
+  }
+}
+
 void setup(void) {
   // Start the Serial communication
   Serial.begin(9600);
@@ -59,216 +85,216 @@ void setup(void) {
 }
 
 void loop() {
-  // Start configuration mode, where the user can enter commands, calibrate,
-  // adjust values and then start the balancing mode.
-  configurationMode();
-
-  // Start balancing mode, where the system tries to balance the flywheel.
-  // All the state is reset in the method call, so the system does not fail because
-  // of some previous state.
-  balancingMode();
-  // By this point the motor is already stopped.
-
-  // Go back to the configuration mode
+  // Run one iteration at a time instead of blocking in configuration or balancing mode.
+  // This allows RemoteXY to handle bluetooth inputs under the hood, between two loops.
+  if (isInConfigurationMode) {
+    // In configuration mode, the user can enter commands to calibrate and monitor the system.
+    configurationMode();
+  }
+  else {
+    // In balancing mode, the system tries to balance the bicycle.
+    balancingMode();
+  }
 }
 
+/**
+ * Runs one iteration of the configuration mode. Because of how RemoteXY works, this function
+ * has been designed not to block the execution of the loop.
+ *
+ * Hence, this function should be called inside a loop to keep the configuration mode running.
+ *
+ * Some commands (such as the ODrive REPL) are blocking, meaning they will not return until
+ * they terminate completely.
+ */
 void configurationMode() {
-  Serial.println("Entering configuration mode. Type 'help' for a list of available commands.");
-
-  // Accept commands from the user in a loop to configure the system
-  while (true) {
-    if (Serial.available() > 0) {
-      String command = Serial.readStringUntil('\n');
-      if (command.startsWith("algo ")) {
-        String parts = command.substring(5);
-        if (parts == "PID" || parts == "OG") {
-          controllerMode = parts;
-          Serial.print("Controller mode set to: ");
-          Serial.println(controllerMode);
-        }
-        else {
-          Serial.print("Unknown controller mode: '");
-          Serial.print(parts);
-          Serial.println("'.");
-        }
-      }
-      else if (command == "calibrate_mpu") {
-        calibrateMpu();
-      }
-      else if (command == "clear_errors") {
-        clearFlywheelErrors();
-      }
-      else if (command == "help") {
-        Serial.println("===========================================");
-        Serial.println();
-        Serial.println("AVAILABLE COMMANDS");
-        Serial.println();
-        Serial.println("===========================================");
-        Serial.println();
-        Serial.println("---------------- algo [PID/OG]");
-        Serial.println("Sets the controller mode to PID or original (OG).");
-        Serial.println();
-        Serial.println("---------------- calibrate_mpu");
-        Serial.println("Enters calibration mode for the MPU6050 to set the offsets.");
-        Serial.println();
-        Serial.println("---------------- clear_errors");
-        Serial.println("Clears the errors of the ODrive driver so that the motor can keep going.");
-        Serial.println();
-        Serial.println("---------------- help");
-        Serial.println("Displays a list of the existing commands.");
-        Serial.println();
-        Serial.println("---------------- print");
-        Serial.println("Prints the current configuration with all necessary value to write them down somewhere.");
-        Serial.println();
-        Serial.println("---------------- odrive_repl");
-        Serial.println("Starts a REPL session with the ODrive where you can enter commands for the ODrive directly.");
-        Serial.println();
-        Serial.println("---------------- set [Kp/Ki/Kd/max_fw_speed/max_fw_torque] <value>");
-        Serial.println("Sets the named value (Kp, Ki or Kd) to the provided value.");
-        Serial.println();
-        Serial.println("---------------- debug");
-        Serial.println("Prints reached maxima in prior testing and resets detectors");
-        Serial.println();
-        Serial.println("---------------- start");
-        Serial.println("Exits the configuration mode and starts the balancing loop.");
-        Serial.println();
-        Serial.println("===========================================");
-      }
-      else if (command == "print") {
-        Serial.println("===========================================");
-        Serial.println();
-        Serial.println("CURRENT CONFIGURATION");
-        Serial.println();
-        Serial.println("===========================================");
-        Serial.println("ODrive:");
-        printOdriveConfiguration();
-        Serial.println("===========================================");
-        Serial.println("MPU6050:");
-        printMpuConfiguration();
-        Serial.println("===========================================");
-        Serial.println("PID:");
-        Serial.print("Kp: ");
-        Serial.println(Kp);
-        Serial.print("Ki: ");
-        Serial.println(Ki);
-        Serial.print("Kd: ");
-        Serial.println(Kd);
-        Serial.println("===========================================");
-      }
-      else if (command == "odrive_repl") {
-        odriveRepl();
-      }
-      else if (command.startsWith("set ")) {
-        String name = command.substring(4);
-        float value = name.substring(name.indexOf(' ') + 1).toFloat();
-
-        if (name.startsWith("Kp ")) {
-          Kp = value;
-          Serial.print("New Kp: ");
-          Serial.println(Kp);
-        }
-        else if (name.startsWith("Ki ")) {
-          Ki = value;
-          Serial.print("New Ki: ");
-          Serial.println(Ki);
-        }
-        else if (name.startsWith("Kd ")) {
-          Kd = value;
-          Serial.print("New Kd: ");
-          Serial.println(Kd);
-        }
-        else if (name.startsWith("max_fw_speed ")) {
-          setFlywheelMaxSpeed(value);
-          Serial.print("New max flywheel speed: ");
-          Serial.println(value);
-        }
-        else if (name.startsWith("max_fw_torque ")) {
-          setFlywheelMaxTorque(value);
-          Serial.print("New max flywheel torque: ");
-          Serial.println(value);
-        }
-        else {
-          Serial.print("Unknown constant: '");
-          Serial.print(name);
-          Serial.println("'.");
-        }
-      }
-      else if (command == "debug") {
-        printMaxReached();
-      }
-      else if (command == "start") {
-        break;
+  if (Serial.available() > 0) {
+    String command = Serial.readStringUntil('\n');
+    if (command.startsWith("algo ")) {
+      String parts = command.substring(5);
+      if (parts == "PID" || parts == "OG") {
+        controllerMode = parts;
+        Serial.print("Controller mode set to: ");
+        Serial.println(controllerMode);
       }
       else {
-        Serial.print("Unknown command: '");
-        Serial.print(command);
+        Serial.print("Unknown controller mode: '");
+        Serial.print(parts);
         Serial.println("'.");
       }
+    }
+    else if (command == "calibrate_mpu") {
+      calibrateMpu();
+    }
+    else if (command == "clear_errors") {
+      clearFlywheelErrors();
+    }
+    else if (command == "help") {
+      Serial.println("===========================================");
+      Serial.println();
+      Serial.println("AVAILABLE COMMANDS");
+      Serial.println();
+      Serial.println("===========================================");
+      Serial.println();
+      Serial.println("---------------- algo [PID/OG]");
+      Serial.println("Sets the controller mode to PID or original (OG).");
+      Serial.println();
+      Serial.println("---------------- calibrate_mpu");
+      Serial.println("Enters calibration mode for the MPU6050 to set the offsets.");
+      Serial.println();
+      Serial.println("---------------- clear_errors");
+      Serial.println("Clears the errors of the ODrive driver so that the motor can keep going.");
+      Serial.println();
+      Serial.println("---------------- help");
+      Serial.println("Displays a list of the existing commands.");
+      Serial.println();
+      Serial.println("---------------- print");
+      Serial.println("Prints the current configuration with all necessary value to write them down somewhere.");
+      Serial.println();
+      Serial.println("---------------- odrive_repl");
+      Serial.println("Starts a REPL session with the ODrive where you can enter commands for the ODrive directly.");
+      Serial.println();
+      Serial.println("---------------- set [Kp/Ki/Kd/max_fw_speed/max_fw_torque] <value>");
+      Serial.println("Sets the named value (Kp, Ki or Kd) to the provided value.");
+      Serial.println();
+      Serial.println("---------------- debug");
+      Serial.println("Prints reached maxima in prior testing and resets detectors");
+      Serial.println();
+      Serial.println("---------------- start");
+      Serial.println("Exits the configuration mode and starts the balancing loop.");
+      Serial.println();
+      Serial.println("===========================================");
+    }
+    else if (command == "print") {
+      Serial.println("===========================================");
+      Serial.println();
+      Serial.println("CURRENT CONFIGURATION");
+      Serial.println();
+      Serial.println("===========================================");
+      Serial.println("ODrive:");
+      printOdriveConfiguration();
+      Serial.println("===========================================");
+      Serial.println("MPU6050:");
+      printMpuConfiguration();
+      Serial.println("===========================================");
+      Serial.println("PID:");
+      Serial.print("Kp: ");
+      Serial.println(Kp);
+      Serial.print("Ki: ");
+      Serial.println(Ki);
+      Serial.print("Kd: ");
+      Serial.println(Kd);
+      Serial.println("===========================================");
+    }
+    else if (command == "odrive_repl") {
+      odriveRepl();
+    }
+    else if (command.startsWith("set ")) {
+      String name = command.substring(4);
+      float value = name.substring(name.indexOf(' ') + 1).toFloat();
+      if (name.startsWith("Kp ")) {
+        Kp = value;
+        Serial.print("New Kp: ");
+        Serial.println(Kp);
+      }
+      else if (name.startsWith("Ki ")) {
+        Ki = value;
+        Serial.print("New Ki: ");
+        Serial.println(Ki);
+      }
+      else if (name.startsWith("Kd ")) {
+        Kd = value;
+        Serial.print("New Kd: ");
+        Serial.println(Kd);
+      }
+      else if (name.startsWith("max_fw_speed ")) {
+        setFlywheelMaxSpeed(value);
+        Serial.print("New max flywheel speed: ");
+        Serial.println(value);
+      }
+      else if (name.startsWith("max_fw_torque ")) {
+        setFlywheelMaxTorque(value);
+        Serial.print("New max flywheel torque: ");
+        Serial.println(value);
+      }
+      else {
+        Serial.print("Unknown constant: '");
+        Serial.print(name);
+        Serial.println("'.");
+      }
+    }
+    else if (command == "debug") {
+      printMaxReached();
+    }
+    else if (command == "start") {
+      switchMode();
+    }
+    else {
+      Serial.print("Unknown command: '");
+      Serial.print(command);
+      Serial.println("'.");
     }
   }
 }
 
 void balancingMode() {
-  Serial.println("Preparing for balancing mode...");
-  Serial.println("Resetting state variables...");
-  kalman_pred[0] = INITIAL_KALMAN_ANGLE;
-  kalman_pred[1] = INITIAL_KALMAN_UNCERTAINTY;
-  lastTime = 0;
-  currentTime = 0;
-  total_error = 0.0;
-  Serial.println("State variables reset.");
-  Serial.println("Entering balancing mode.");
-
-  while (kalman_pred[0] > (-M_PI / 4) && kalman_pred[0] < (M_PI / 4) && Serial.available() == 0) {
-    currentTime = millis(); 
-
-    float accelY, accelZ, gyroX;
-    mpuMeasure(&accelY, &accelZ, &gyroX);
-
-    // rotation rate around X axis and angle from vertical
-    angleCalculator(accelY, accelZ, gyroX, kalman_pred, currentTime - lastTime);
-
-    // flywheel motor input (constrained for safety)
-    float input = 0;
-    if (controllerMode == "PID"){
-      input = pidBalancingImplementation(currentTime - lastTime, kalman_pred[0]);
-    }
-    else if (controllerMode == "OG"){
-      input = ogBalancingImplementation(gyroX, kalman_pred[0]);
-    }
-
-    // monitoring purposes
-    Serial.print("angle:");
-    Serial.print(kalman_pred[0]);
-    Serial.print(",");
-    Serial.print("gyroX:");
-    Serial.print(gyroX);
-    Serial.print(",");
-    Serial.print("input:");
-    Serial.print(input);
-
-    float speed = getFlywheelMotorSpeed();
-    Serial.print(",");
-    Serial.print("speed:");
-    Serial.println(speed);
-
-    if (flywheelMotorSpeedOverUpperBound() && input > TORQUE_FOR_CONSTANT_SPEED) {
-      setFlywheelMotorTorque(TORQUE_FOR_CONSTANT_SPEED);
-    }
-    else if (flywheelMotorSpeedUnderLowerBound() && input < -TORQUE_FOR_CONSTANT_SPEED) {
-      setFlywheelMotorTorque(-TORQUE_FOR_CONSTANT_SPEED);
-    }
-    else {
-      // The safety bounds are applied within the function
-      setFlywheelMotorTorque(input);
-    }
-  
-    lastTime = currentTime;
+  // Check that the angle is within the safety bounds, otherwise stop balancing
+  if (kalman_pred[0] <= (-M_PI / 4) || kalman_pred[0] >= (M_PI / 4)) {
+    Serial.println("Safety angle limit reached, stopping motor...");
+    switchMode();
+    return;
   }
 
-  Serial.println("Exiting balancing mode, stopping motor...");
-  stopFlywheelMotor();
-  Serial.println("Motor stopped.");
+  // Check that the user did not stop the balancing mode manually
+  if (Serial.available() > 0) {
+    Serial.readStringUntil('\n');
+    switchMode();
+    return;
+  }
+  
+  currentTime = millis(); 
+
+  float accelY, accelZ, gyroX;
+  mpuMeasure(&accelY, &accelZ, &gyroX);
+
+  // rotation rate around X axis and angle from vertical
+  angleCalculator(accelY, accelZ, gyroX, kalman_pred, currentTime - lastTime);
+
+  // flywheel motor input (constrained for safety)
+  float input = 0;
+  if (controllerMode == "PID"){
+    input = pidBalancingImplementation(currentTime - lastTime, kalman_pred[0]);
+  }
+  else if (controllerMode == "OG"){
+    input = ogBalancingImplementation(gyroX, kalman_pred[0]);
+  }
+
+  // monitoring purposes
+  Serial.print("angle:");
+  Serial.print(kalman_pred[0]);
+  Serial.print(",");
+  Serial.print("gyroX:");
+  Serial.print(gyroX);
+  Serial.print(",");
+  Serial.print("input:");
+  Serial.print(input);
+
+  float speed = getFlywheelMotorSpeed();
+  Serial.print(",");
+  Serial.print("speed:");
+  Serial.println(speed);
+
+  if (flywheelMotorSpeedOverUpperBound() && input > TORQUE_FOR_CONSTANT_SPEED) {
+    setFlywheelMotorTorque(TORQUE_FOR_CONSTANT_SPEED);
+  }
+  else if (flywheelMotorSpeedUnderLowerBound() && input < -TORQUE_FOR_CONSTANT_SPEED) {
+    setFlywheelMotorTorque(-TORQUE_FOR_CONSTANT_SPEED);
+  }
+  else {
+    // The safety bounds are applied within the function
+    setFlywheelMotorTorque(input);
+  }
+  
+  lastTime = currentTime;
 }
 
 /**
