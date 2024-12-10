@@ -144,6 +144,9 @@ void configurationMode() {
       Serial.println("---------------- clear_errors");
       Serial.println("Clears the errors of the ODrive driver so that the motor can keep going.");
       Serial.println();
+      Serial.println("---------------- debug");
+      Serial.println("Prints reached maxima in prior testing and resets detectors");
+      Serial.println();
       Serial.println("---------------- help");
       Serial.println("Displays a list of the existing commands.");
       Serial.println();
@@ -155,9 +158,6 @@ void configurationMode() {
       Serial.println();
       Serial.println("---------------- set [Kp/Ki/Kd/max_fw_speed/max_fw_torque] <value>");
       Serial.println("Sets the named value (Kp, Ki or Kd) to the provided value.");
-      Serial.println();
-      Serial.println("---------------- debug");
-      Serial.println("Prints reached maxima in prior testing and resets detectors");
       Serial.println();
       Serial.println("---------------- start");
       Serial.println("Exits the configuration mode and starts the balancing loop.");

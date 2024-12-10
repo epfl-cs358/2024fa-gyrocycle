@@ -73,7 +73,9 @@ void odriveRepl() {
   Serial.println("===========================================");
   Serial.println();
   Serial.println("Starting ODrive REPL session");
-  Serial.println("Type 'done' or 'exit' to end the session.");
+  Serial.println();
+  Serial.println("Type 'done', 'exit' or 'quit' to end the");
+  Serial.println("session.");
   Serial.println();
   Serial.println("===========================================");
 
@@ -221,11 +223,11 @@ void setFlywheelMotorTorque(float torque) {
  * Debug function
  */
 void printMaxReached(){
-  Serial.print("Velocity reached during testing : ");
+  Serial.print("Velocity reached during testing: ");
   Serial.println(absSpeedReached);
-  Serial.print("Torue reached during testing (desired torque before clamping): ");
+  Serial.print("Torque reached during testing (desired torque before clamping): ");
   Serial.println(absTorqueReached);
-  Serial.println("Reseting detectors");
+  Serial.println("Resetting detectors...");
   absSpeedReached = 0;
   absTorqueReached = 0;
 }
