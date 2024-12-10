@@ -4,7 +4,7 @@
 #include <math.h>
 
 #define GEAR_RATIO 0.5
-#define INITIAL_KALMAN_ANGLE 0
+#define INITIAL_KALMAN_ANGLE -0.1
 // 0.06981 corresponds to 4 deg of uncertainty on the first step
 #define INITIAL_KALMAN_UNCERTAINTY 0.06981
 #define TORQUE_FOR_CONSTANT_SPEED 0.018
@@ -326,7 +326,8 @@ float ogBalancingImplementation(float gyroX, float angle) {
  */
 float pidBalancingImplementation(long elapsedTime, float angle) {
   // The error of this controller is the angle from the vertical
-  float error = angle - 0;
+  float error = 1 - cos(angle);
+  if (angle < 0) error = -error;
 
   // Accumulate the error for the integral (I) term
   // TODO : Should we clamp the value of total_error?
