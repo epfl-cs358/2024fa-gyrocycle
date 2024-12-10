@@ -36,10 +36,12 @@ void initOdriveCommunication() {
   odrive_serial.begin(ODRIVE_BAUD, SERIAL_8N1, RXD2, TXD2);
   Serial.println("Created odrive_serial communication channel.");
 
-  // Wait for the ODrive to be available and ready
+  // Wait for the ODrive to be available and ready, allow for calibration at startup if needed
   Serial.println("Waiting for ODrive...");
-  while (odrive.getState() == AXIS_STATE_UNDEFINED) {
+  int odriveState = odrive.getState();
+  while (odriveState != AXIS_STATE_IDLE && odriveState != AXIS_STATE_CLOSED_LOOP_CONTROL) {
     delay(100);
+    odriveState = odrive.getState();
   }
   Serial.println("Found ODrive.");
 
