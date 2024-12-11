@@ -128,6 +128,37 @@ void configurationMode() {
     else if (command == "clear_errors") {
       clearFlywheelErrors();
     }
+    else if (command == "config") {
+      Serial.println("Usage: config <Kp> <Ki> <Kd> <max_fw_speed> <max_fw_torque> <odrive_max_speed>");
+    }
+    else if (command.startsWith("config ")) {
+      // Extract the values from the command
+      String parts = command.substring(7);
+      float newKp, newKi, newKd, max_fw_speed, max_fw_torque, odrive_max_speed;
+      sscanf(parts.c_str(), "%f %f %f %f %f %f", &Kp, &Ki, &Kd, &max_fw_speed, &max_fw_torque, &odrive_max_speed);
+
+      // Update the values
+      Kp = newKp;
+      Ki = newKi;
+      Kd = newKd;
+      setFlywheelMaxSpeed(max_fw_speed);
+      setFlywheelMaxTorque(max_fw_torque);
+      setOdriveConfigMaxSpeed(odrive_max_speed);
+
+      // Notify the user of the update
+      Serial.print("New configuration: Kp=");
+      Serial.print(Kp);
+      Serial.print(", Ki=");
+      Serial.print(Ki);
+      Serial.print(", Kd=");
+      Serial.print(Kd);
+      Serial.print(", max_fw_speed=");
+      Serial.print(max_fw_speed);
+      Serial.print(", max_fw_torque=");
+      Serial.print(max_fw_torque);
+      Serial.print(", odrive_max_speed=");
+      Serial.println(odrive_max_speed);
+    }
     else if (command == "help") {
       Serial.println("===========================================");
       Serial.println();
@@ -144,6 +175,9 @@ void configurationMode() {
       Serial.println("---------------- clear_errors");
       Serial.println("Clears the errors of the ODrive driver so that the motor can keep going.");
       Serial.println();
+      Serial.println("---------------- config <Kp> <Ki> <Kd> <max_fw_speed> <max_fw_torque> <odrive_max_speed>");
+      Serial.println("Sets the PID constants and the maximum speed and torque for the flywheel motor, all in one command.");
+      Serial.println();
       Serial.println("---------------- debug");
       Serial.println("Prints reached maxima in prior testing and resets detectors");
       Serial.println();
@@ -156,8 +190,8 @@ void configurationMode() {
       Serial.println("---------------- odrive_repl");
       Serial.println("Starts a REPL session with the ODrive where you can enter commands for the ODrive directly.");
       Serial.println();
-      Serial.println("---------------- set [Kp/Ki/Kd/max_fw_speed/max_fw_torque] <value>");
-      Serial.println("Sets the named value (Kp, Ki or Kd) to the provided value.");
+      Serial.println("---------------- set [Kp/Ki/Kd/max_fw_speed/max_fw_torque/odrive_max_speed] <value>");
+      Serial.println("Sets the named value (Kp, Ki, Kd, max_fw_speed, max_fw_torque or odrive_max_speed) to the provided value.");
       Serial.println();
       Serial.println("---------------- start");
       Serial.println("Exits the configuration mode and starts the balancing loop.");
@@ -214,6 +248,11 @@ void configurationMode() {
       else if (name.startsWith("max_fw_torque ")) {
         setFlywheelMaxTorque(value);
         Serial.print("New max flywheel torque: ");
+        Serial.println(value);
+      }
+      else if (name.startsWith("odrive_max_speed ")) {
+        setOdriveConfigMaxSpeed(value);
+        Serial.print("New ODrive max speed: ");
         Serial.println(value);
       }
       else {

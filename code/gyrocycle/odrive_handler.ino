@@ -125,6 +125,8 @@ void printOdriveConfiguration() {
   Serial.println(flywheelMaxSpeed);
   Serial.print("Maximum torque: ");
   Serial.println(flywheelMaxTorque);
+  Serial.print("ODrive configuration maximum speed: ");
+  Serial.println(getOdriveConfigMaxSpeed());
 }
 
 /**
@@ -133,6 +135,20 @@ void printOdriveConfiguration() {
  */
 void setFlywheelMaxSpeed(float maxSpeed) {
   flywheelMaxSpeed = maxSpeed;
+}
+
+/**
+ * Retrieves the maximum speed from the ODrive's configuration (not from the software configuration).
+ */
+float getOdriveConfigMaxSpeed() {
+  return odrive.getParameterAsFloat("axis0.controller.config.vel_limit");
+}
+
+/**
+ * Sets the maximum speed on the ODrive's configuration (not in the software configuration).
+ */
+void setOdriveConfigMaxSpeed(float maxSpeed) {
+  odrive.setParameter("axis0.controller.config.vel_limit", String(maxSpeed));
 }
 
 /**
