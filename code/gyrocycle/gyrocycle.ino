@@ -2,12 +2,20 @@
 #include <Adafruit_Sensor.h>
 #include <Wire.h>
 #include <math.h>
+#include "one_euro.h"
 
 #define GEAR_RATIO 0.5
 #define INITIAL_KALMAN_ANGLE -0.1
 // 0.06981 corresponds to 4 deg of uncertainty on the first step
 #define INITIAL_KALMAN_UNCERTAINTY 0.06981
 #define TORQUE_FOR_CONSTANT_SPEED 0.018
+
+// This defines how much the angle is influenced by the accelerometer and the gyroscope
+#define ANGLE_ALPHA 0.1f
+#define NUMBER_OF_MEASURE_FOR_MPU_CALIBRATION 500
+#define MOVING_AVERAGE_SIZE 100
+
+#define ANGLE_MARGIN 0.01f
 
 // Angle and uncertainty at each step
 float kalman_pred[] = {INITIAL_KALMAN_ANGLE, INITIAL_KALMAN_UNCERTAINTY};
@@ -17,7 +25,7 @@ unsigned long currentTime = 0;
 unsigned long timeTest1 = 0;
 
 // model characteristics
-const float mass = 2; // in kg
+const float mass = 2;               // in kg
 const float centerOfGravity = 0.15; // in meters
 
 // basic balancing constants
@@ -39,17 +47,29 @@ float Kd = 0.0;
 // Indicates whether the current running mode is configuration or balancing
 int isInConfigurationMode = 1;
 
-void switchMode() {
+OneEuroFilter oneEuroGyroFilter = OneEuroFilter(DEFAULT_FREQUENCY, 1.0, 0.01, DEFAULT_DCUTOFF);
+OneEuroFilter oneEuroAngleAccFilter = OneEuroFilter(DEFAULT_FREQUENCY, 1.0, 0.01, DEFAULT_DCUTOFF);
+
+float angle = 0.0;
+unsigned long lastAngleUpdateTime = 0.0;
+
+float movingAverage[MOVING_AVERAGE_SIZE];
+int movingAverageIndex = 0;
+
+void switchMode()
+{
   isInConfigurationMode = !isInConfigurationMode;
-  
+
   // Once the state is updated, do some transition logic
-  if (isInConfigurationMode) {
+  if (isInConfigurationMode)
+  {
     Serial.println("Exiting balancing mode, stopping motor...");
     stopFlywheelMotor();
     Serial.println("Motor stopped.");
     Serial.println("Entering configuration mode. Type 'help' for a list of available commands.");
   }
-  else {
+  else
+  {
     Serial.println("Preparing for balancing mode...");
     Serial.println("Resetting state variables...");
     kalman_pred[0] = INITIAL_KALMAN_ANGLE;
@@ -62,17 +82,29 @@ void switchMode() {
   }
 }
 
-void setup(void) {
+void calibrateInitialAngle(void)
+{
+  float sum = 0;
+  for (int i = 0; i < NUMBER_OF_MEASURE_FOR_MPU_CALIBRATION; i++)
+  {
+    float accelY, accelZ, gyroX;
+    mpuMeasure(&accelY, &accelZ, &gyroX);
+    sum += atan(accelY / accelZ);
+  }
+  angle = sum / NUMBER_OF_MEASURE_FOR_MPU_CALIBRATION;
+}
+
+void setup(void)
+{
 
   // Start the Serial communication
   Serial.begin(500000);
 
   // Wait for the Serial to be opened
   while (!Serial)
-    delay(10); 
+    delay(10);
 
   delay(2000);
-
 
   // Start I2C communication with the MPU6050 gyroscope sensor
   initMpuCommunication();
@@ -81,9 +113,13 @@ void setup(void) {
   unsigned long clock = Wire.getClock();
   Serial.print("clock:");
   Serial.println(clock);
-  
+
   // Start UART communication with ODrive motor controller
   initOdriveCommunication();
+
+  Serial.println("Calibrating MPU6050...");
+  calibrateInitialAngle();
+  Serial.println("MPU6050 calibrated.");
 
   Serial.println("Setup complete.");
   Serial.println("Starting in 3...");
@@ -94,14 +130,18 @@ void setup(void) {
   delay(1000);
 }
 
-void loop() {
+void loop()
+{
+  updateGyroAngle();
   // Run one iteration at a time instead of blocking in configuration or balancing mode.
   // This allows RemoteXY to handle bluetooth inputs under the hood, between two loops.
-  if (isInConfigurationMode) {
+  if (isInConfigurationMode)
+  {
     // In configuration mode, the user can enter commands to calibrate and monitor the system.
     configurationMode();
   }
-  else {
+  else
+  {
     // In balancing mode, the system tries to balance the bicycle.
     balancingMode();
   }
@@ -116,32 +156,41 @@ void loop() {
  * Some commands (such as the ODrive REPL) are blocking, meaning they will not return until
  * they terminate completely.
  */
-void configurationMode() {
-  if (Serial.available() > 0) {
+void configurationMode()
+{
+  if (Serial.available() > 0)
+  {
     String command = Serial.readStringUntil('\n');
-    if (command.startsWith("algo ")) {
+    if (command.startsWith("algo "))
+    {
       String parts = command.substring(5);
-      if (parts == "PID" || parts == "OG") {
+      if (parts == "PID" || parts == "OG")
+      {
         controllerMode = parts;
         Serial.print("Controller mode set to: ");
         Serial.println(controllerMode);
       }
-      else {
+      else
+      {
         Serial.print("Unknown controller mode: '");
         Serial.print(parts);
         Serial.println("'.");
       }
     }
-    else if (command == "calibrate_mpu") {
+    else if (command == "calibrate_mpu")
+    {
       calibrateMpu();
     }
-    else if (command == "clear_errors") {
+    else if (command == "clear_errors")
+    {
       clearFlywheelErrors();
     }
-    else if (command == "config") {
+    else if (command == "config")
+    {
       Serial.println("Usage: config <Kp> <Ki> <Kd> <max_fw_speed> <max_fw_torque> <odrive_max_speed>");
     }
-    else if (command.startsWith("config ")) {
+    else if (command.startsWith("config "))
+    {
       // Extract the values from the command
       String parts = command.substring(7);
       float newKp, newKi, newKd, max_fw_speed, max_fw_torque, odrive_max_speed;
@@ -169,7 +218,8 @@ void configurationMode() {
       Serial.print(", odrive_max_speed=");
       Serial.println(odrive_max_speed);
     }
-    else if (command == "help") {
+    else if (command == "help")
+    {
       Serial.println("===========================================");
       Serial.println();
       Serial.println("AVAILABLE COMMANDS");
@@ -208,7 +258,8 @@ void configurationMode() {
       Serial.println();
       Serial.println("===========================================");
     }
-    else if (command == "print") {
+    else if (command == "print")
+    {
       Serial.println("===========================================");
       Serial.println();
       Serial.println("CURRENT CONFIGURATION");
@@ -229,55 +280,67 @@ void configurationMode() {
       Serial.println(Kd);
       Serial.println("===========================================");
     }
-    else if (command == "odrive_repl") {
+    else if (command == "odrive_repl")
+    {
       odriveRepl();
     }
-    else if (command.startsWith("set ")) {
+    else if (command.startsWith("set "))
+    {
       String name = command.substring(4);
       float value = name.substring(name.indexOf(' ') + 1).toFloat();
-      if (name.startsWith("Kp ")) {
+      if (name.startsWith("Kp "))
+      {
         Kp = value;
         Serial.print("New Kp: ");
         Serial.println(Kp);
       }
-      else if (name.startsWith("Ki ")) {
+      else if (name.startsWith("Ki "))
+      {
         Ki = value;
         Serial.print("New Ki: ");
         Serial.println(Ki);
       }
-      else if (name.startsWith("Kd ")) {
+      else if (name.startsWith("Kd "))
+      {
         Kd = value;
         Serial.print("New Kd: ");
         Serial.println(Kd);
       }
-      else if (name.startsWith("max_fw_speed ")) {
+      else if (name.startsWith("max_fw_speed "))
+      {
         setFlywheelMaxSpeed(value);
         Serial.print("New max flywheel speed: ");
         Serial.println(value);
       }
-      else if (name.startsWith("max_fw_torque ")) {
+      else if (name.startsWith("max_fw_torque "))
+      {
         setFlywheelMaxTorque(value);
         Serial.print("New max flywheel torque: ");
         Serial.println(value);
       }
-      else if (name.startsWith("odrive_max_speed ")) {
+      else if (name.startsWith("odrive_max_speed "))
+      {
         setOdriveConfigMaxSpeed(value);
         Serial.print("New ODrive max speed: ");
         Serial.println(value);
       }
-      else {
+      else
+      {
         Serial.print("Unknown constant: '");
         Serial.print(name);
         Serial.println("'.");
       }
     }
-    else if (command == "debug") {
+    else if (command == "debug")
+    {
       printMaxReached();
     }
-    else if (command == "start") {
+    else if (command == "start")
+    {
       switchMode();
     }
-    else {
+    else
+    {
       Serial.print("Unknown command: '");
       Serial.print(command);
       Serial.println("'.");
@@ -285,54 +348,75 @@ void configurationMode() {
   }
 }
 
-void balancingMode() {
+void updateGyroAngle()
+{
+  float accelY, accelZ, gyroX, gyroY, gyroZ;
+  mpuMeasure(nullptr, &accelY, &accelZ, &gyroX, &gyroY, &gyroZ);
+
+  unsigned long currentTime = micros();
+  float filteredGyroX = oneEuroGyroFilter.filter(gyroX, (float)(currentTime / 1000000.0f));
+  float predictedAngle = angle + (float)(currentTime - lastAngleUpdateTime) / 1000000.0f * filteredGyroX;
+  float filteredAccAngle = oneEuroAngleAccFilter.filter((float)atan(accelY / accelZ), (float)(currentTime / 1000000.0f));
+
+  // This correct term is the angle calculated with the accelerometer
+  float newAngle = 0.0;
+
+  // If the gyroscope is not moving, the accelerometer is more reliable
+  if (filteredGyroX < 0.01f && filteredGyroX > -0.01f && gyroY < 0.1f && gyroY > -0.1f && gyroZ < 0.1f && gyroZ > -0.1f)
+  {
+    newAngle = (float)((1 - ANGLE_ALPHA) * predictedAngle + ANGLE_ALPHA * filteredAccAngle);
+  }
+  else
+  {
+    newAngle = (float)(ANGLE_ALPHA * predictedAngle + (1 - ANGLE_ALPHA) * filteredAccAngle);
+  }
+  angle = newAngle;
+  lastAngleUpdateTime = currentTime;
+}
+
+void balancingMode()
+{
   // Check that the angle is within the safety bounds, otherwise stop balancing
-  if (kalman_pred[0] <= (-M_PI / 4) || kalman_pred[0] >= (M_PI / 4)) {
+  if (kalman_pred[0] <= (-M_PI / 4) || kalman_pred[0] >= (M_PI / 4))
+  {
     Serial.println("Safety angle limit reached, stopping motor...");
     switchMode();
     return;
   }
 
   // Check that the user did not stop the balancing mode manually
-  if (Serial.available() > 0) {
+  if (Serial.available() > 0)
+  {
     Serial.readStringUntil('\n');
     switchMode();
     return;
   }
-  
-  currentTime = millis(); 
 
-  float accelY, accelZ, gyroX;
-  mpuMeasure(&accelY, &accelZ, &gyroX);
+  currentTime = millis();
+
   Serial.print("timeOdriveInteraction:");
-  Serial.print(currentTime-timeTest1);
+  Serial.print(currentTime - timeTest1);
   Serial.print(",");
 
   timeTest1 = millis();
   // rotation rate around X axis and angle from vertical
-  angleCalculator(accelY, accelZ, gyroX, kalman_pred, currentTime - lastTime);
 
   // flywheel motor input (constrained for safety)
   float input = 0;
-  if (controllerMode == "PID"){
-    input = pidBalancingImplementation(currentTime - lastTime, kalman_pred[0]);
-  }
-  else if (controllerMode == "OG"){
-    input = ogBalancingImplementation(gyroX, kalman_pred[0]);
+  if (controllerMode == "PID")
+  {
+    input = pidBalancingImplementation(currentTime - lastTime, angle);
   }
 
   // monitoring purposes
   Serial.print("angle:");
-  Serial.print(kalman_pred[0]);
-  Serial.print(",");
-  Serial.print("gyroX:");
-  Serial.print(gyroX);
+  Serial.print(angle);
   Serial.print(",");
   Serial.print("input:");
   Serial.print(input);
   Serial.print(",");
   Serial.print("timeGyroscopeMeasurment:");
-  Serial.println(timeTest1-currentTime);
+  Serial.println(timeTest1 - currentTime);
 
   // float speed = getFlywheelMotorSpeed();
   // Serial.print(",");
@@ -350,7 +434,7 @@ void balancingMode() {
   //   setFlywheelMotorTorque(input);
   // }
   setFlywheelMotorTorque(input);
-  
+
   lastTime = currentTime;
 }
 
@@ -359,11 +443,12 @@ void balancingMode() {
  *
  * Performs some computations based on the current angle of the bike, and predicts
  * the torque that should be applied to the flywheel motor.
- * 
+ *
  * @param angle The angle from the vertical, calculated with the accelerometer.
  * @return float The torque that should be applied to the flywheel motor.
  */
-float ogBalancingImplementation(float gyroX, float angle) {
+float ogBalancingImplementation(float gyroX, float angle)
+{
   // Calculate the theoretical torque that should be applied to the flywheel motor
   float theoreticalTorque = centerOfGravity * mass * 9.81 * sin(angle) * GEAR_RATIO;
 
@@ -375,13 +460,14 @@ float ogBalancingImplementation(float gyroX, float angle) {
 
 /**
  * @brief Implementation of balancing algorithm using a PID controller.
- * 
+ *
  * @param elapsedTime The time elapsed since the last iteration of the PID controller.
  * @param angle The angle from the vertical, calculated with the accelerometer.
- * 
+ *
  * @return float The torque that should be applied to the flywheel motor.
  */
-float pidBalancingImplementation(long elapsedTime, float angle) {
+float pidBalancingImplementation(long elapsedTime, float angle)
+{
   // The error of this controller is the angle from the vertical
   float error = angle;
   // if (angle < 0) error = -error;
@@ -401,11 +487,11 @@ float pidBalancingImplementation(long elapsedTime, float angle) {
 }
 
 // calculates tilt angle from sensor readings
-void angleCalculator(float accelY, float accelZ, float gyroX, float* last_step, unsigned long deltaTime) {
+void angleCalculator(float accelY, float accelZ, float gyroX, float *last_step, unsigned long deltaTime)
+{
 
-  float acc_angle = atan(accelY/accelZ); // angle calculated with accelerometer readings
+  float acc_angle = atan(accelY / accelZ);                    // angle calculated with accelerometer readings
   float gyro_angle = last_step[0] + deltaTime / 1000 * gyroX; // angle integrated from gyroscope readings
-
 
   float uncertainty = last_step[1] + (deltaTime / 1000.0) * (deltaTime / 1000.0) * 0.00487; // 0,00487 is the assumed variance on the rotation rate (std deviation of 4 deg/s)
   // calculate kalman gain
@@ -414,5 +500,4 @@ void angleCalculator(float accelY, float accelZ, float gyroX, float* last_step, 
   last_step[0] = gyro_angle + gain * (acc_angle - gyro_angle);
   // update uncertainty
   last_step[1] = (1 - gain) * uncertainty;
-
 }

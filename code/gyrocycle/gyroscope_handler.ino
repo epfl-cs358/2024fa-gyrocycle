@@ -21,12 +21,15 @@ float gyroXoffset = -0.12;
  * This function is blocking, meaning it will only return when the MPU6050 has
  * been found and communication has been established.
  */
-void initMpuCommunication() {
+void initMpuCommunication()
+{
   // Try finding the MPU6050
-  if (!mpu.begin()) {
+  if (!mpu.begin())
+  {
     Serial.println("Failed to find MPU6050 chip");
     // If the MPU6050 can't be found, stop the execution and wait for a reset
-    while (1) {
+    while (1)
+    {
       delay(1000);
     }
   }
@@ -46,14 +49,14 @@ void initMpuCommunication() {
   printlnAccelerometerRange();
   printlnGyroRange();
   printlnFilterBandwidth();
-
 }
 
 /**
  * Prints a list of configurable parameters for the MPU6050 sensor with their
  * current values.
  */
-void printMpuConfiguration() {
+void printMpuConfiguration()
+{
   Serial.print("Offset for acceleration on Y axis: ");
   Serial.println(accelYoffset);
   Serial.print("Offset for acceleration on Z axis: ");
@@ -70,7 +73,8 @@ void printMpuConfiguration() {
  * where the values of the acceleration and gyroscope are printed to Serial
  * and the user can adjust the offsets manually.
  */
-void calibrateMpu() {
+void calibrateMpu()
+{
   Serial.println("===========================================");
   Serial.println();
   Serial.println("MPU6050 CALIBRATION MODE");
@@ -90,14 +94,16 @@ void calibrateMpu() {
   bool printValues = false;
 
   // Start the calibration loop
-  while (true) {
+  while (true)
+  {
     // Measure the sensor
     float accelY, accelZ, gyroX;
     mpuMeasure(&accelY, &accelZ, &gyroX);
 
     // Print the values so that they can be plotted on Arduino IDE's
     // Serial Plotter with labels
-    if (printValues) {
+    if (printValues)
+    {
       Serial.print("Adjusted accelY:");
       Serial.print(accelY);
       Serial.print(",Adjusted accelZ:");
@@ -113,52 +119,63 @@ void calibrateMpu() {
     }
 
     // Check if the user has typed a command
-    if (Serial.available() > 0) {
+    if (Serial.available() > 0)
+    {
       String command = Serial.readStringUntil('\n');
-      if (command == "plot") {
+      if (command == "plot")
+      {
         printValues = true;
       }
-      else if (command == "shut") {
+      else if (command == "shut")
+      {
         printValues = false;
       }
-      else if (command == "help") {
+      else if (command == "help")
+      {
         Serial.println();
         Serial.println("Available commands:");
         Serial.println("'plot' - Start printing values read from the sensor.");
-        Serial.println("'shut' - Stop printing values from the sensor." );
+        Serial.println("'shut' - Stop printing values from the sensor.");
         Serial.println("'set [accelY/accelZ/gyroX] <value>' - Set an offset manually.");
         Serial.println("'done' or 'exit' or 'quit' - End the interactive calibration process.");
         Serial.println();
       }
-      else if (command.startsWith("set ")) {
+      else if (command.startsWith("set "))
+      {
         String name = command.substring(4);
         float value = name.substring(name.indexOf(' ') + 1).toFloat();
-        
-        if (name.startsWith("accelY")) {
+
+        if (name.startsWith("accelY"))
+        {
           accelYoffset = value;
           Serial.print("New accelY offset: ");
           Serial.println(accelYoffset);
         }
-        else if (name.startsWith("accelZ")) {
+        else if (name.startsWith("accelZ"))
+        {
           accelZoffset = value;
           Serial.print("New accelZ offset: ");
           Serial.println(accelZoffset);
         }
-        else if (name.startsWith("gyroX")) {
+        else if (name.startsWith("gyroX"))
+        {
           gyroXoffset = value;
           Serial.print("New gyroX offset: ");
           Serial.println(gyroXoffset);
         }
-        else {
+        else
+        {
           Serial.print("Unknown offset: '");
           Serial.print(name);
           Serial.println("'.");
         }
       }
-      else if (command == "done" || command == "exit" || command == "quit") {
+      else if (command == "done" || command == "exit" || command == "quit")
+      {
         break;
       }
-      else if (command != NULL) {
+      else if (command != NULL)
+      {
         Serial.print("Unknown command: '");
         Serial.print(command);
         Serial.println("'.");
@@ -184,29 +201,61 @@ void calibrateMpu() {
  * a* pointers are for acceleration on the three axis, g* pointers are for the
  * gyroscope values.
  */
-void mpuMeasure(float* ay, float* az, float* gx) {
+void mpuMeasure(float *ay, float *az, float *gx)
+{
+  mpuMeasure(nullptr, ay, az, gx, nullptr, nullptr);
+}
+
+/**
+ * Performs one measurement on the MPU6050 and sets the corresponding values to
+ * the provided pointers, already adjusted with their respective offset.
+ *
+ * NULL pointers can be passed to ignore a value.
+ *
+ * a* pointers are for acceleration on the three axis, g* pointers are for the
+ * gyroscope values.
+ */
+void mpuMeasure(float *ax, float *ay, float *az, float *gx, float *gy, float *gz)
+{
   // Get a measurement from the gyroscope
   sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
 
   // Extract the data in the provided pointers
-  if (ay != NULL) {
+  if (ax != NULL)
+  {
+    *ax = a.acceleration.x;
+  }
+  if (ay != NULL)
+  {
     *ay = a.acceleration.y - accelYoffset;
   }
-  if (az != NULL) {
+  if (az != NULL)
+  {
     *az = a.acceleration.z - accelZoffset;
   }
-  if (gx != NULL) {
+  if (gx != NULL)
+  {
     *gx = g.gyro.x - gyroXoffset;
+  }
+  if (gy != NULL)
+  {
+    *gy = g.gyro.y;
+  }
+  if (gz != NULL)
+  {
+    *gz = g.gyro.z;
   }
 }
 
 /**
  * Prints a line to Serial such as "Accelerometer range set to: +-8G".
  */
-void printlnAccelerometerRange() {
+void printlnAccelerometerRange()
+{
   Serial.print("Accelerometer range set to: ");
-  switch (mpu.getAccelerometerRange()) {
+  switch (mpu.getAccelerometerRange())
+  {
   case MPU6050_RANGE_2_G:
     Serial.println("+-2G");
     break;
@@ -225,9 +274,11 @@ void printlnAccelerometerRange() {
 /**
  * Prints a line to Serial such as "Gyro range set to: +- 500 deg/s".
  */
-void printlnGyroRange() {
+void printlnGyroRange()
+{
   Serial.print("Gyro range set to: ");
-  switch (mpu.getGyroRange()) {
+  switch (mpu.getGyroRange())
+  {
   case MPU6050_RANGE_250_DEG:
     Serial.println("+- 250 deg/s");
     break;
@@ -246,9 +297,11 @@ void printlnGyroRange() {
 /**
  * Prints a line to Serial such as "Filter bandwidth set to: 21 Hz".
  */
-void printlnFilterBandwidth() {
+void printlnFilterBandwidth()
+{
   Serial.print("Filter bandwidth set to: ");
-  switch (mpu.getFilterBandwidth()) {
+  switch (mpu.getFilterBandwidth())
+  {
   case MPU6050_BAND_260_HZ:
     Serial.println("260 Hz");
     break;
