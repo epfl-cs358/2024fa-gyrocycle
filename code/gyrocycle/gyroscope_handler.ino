@@ -36,9 +36,9 @@ void initMpuCommunication() {
 
   // Configure the sensor
   Serial.println("Configuring the sensor...");
-  mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
-  mpu.setGyroRange(MPU6050_RANGE_500_DEG);
-  mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
+  mpu.setAccelerometerRange(MPU6050_RANGE_2_G);
+  mpu.setGyroRange(MPU6050_RANGE_250_DEG);
+  mpu.setFilterBandwidth(MPU6050_BAND_260_HZ);
   delay(1000);
   Serial.println("Sensor configured.");
 

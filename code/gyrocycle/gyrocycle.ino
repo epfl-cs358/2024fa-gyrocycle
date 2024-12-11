@@ -14,6 +14,7 @@ float kalman_pred[] = {INITIAL_KALMAN_ANGLE, INITIAL_KALMAN_UNCERTAINTY};
 
 unsigned long lastTime = 0;
 unsigned long currentTime = 0;
+unsigned long timeTest1 = 0;
 
 // model characteristics
 const float mass = 2; // in kg
@@ -31,7 +32,7 @@ float previous_error = 0.0;
 float total_error = 0.0;
 
 // PID constants
-float Kp = centerOfGravity * mass * 9.81 * GEAR_RATIO * positionWeight;
+float Kp = 0;
 float Ki = 0.0;
 float Kd = 0.0;
 
@@ -62,15 +63,24 @@ void switchMode() {
 }
 
 void setup(void) {
+
   // Start the Serial communication
-  Serial.begin(9600);
+  Serial.begin(500000);
 
   // Wait for the Serial to be opened
   while (!Serial)
     delay(10); 
 
+  delay(2000);
+
+
   // Start I2C communication with the MPU6050 gyroscope sensor
   initMpuCommunication();
+
+  Wire.setClock(400000);
+  unsigned long clock = Wire.getClock();
+  Serial.print("clock:");
+  Serial.println(clock);
   
   // Start UART communication with ODrive motor controller
   initOdriveCommunication();
@@ -294,7 +304,11 @@ void balancingMode() {
 
   float accelY, accelZ, gyroX;
   mpuMeasure(&accelY, &accelZ, &gyroX);
+  Serial.print("timeOdriveInteraction:");
+  Serial.print(currentTime-timeTest1);
+  Serial.print(",");
 
+  timeTest1 = millis();
   // rotation rate around X axis and angle from vertical
   angleCalculator(accelY, accelZ, gyroX, kalman_pred, currentTime - lastTime);
 
@@ -316,22 +330,26 @@ void balancingMode() {
   Serial.print(",");
   Serial.print("input:");
   Serial.print(input);
-
-  float speed = getFlywheelMotorSpeed();
   Serial.print(",");
-  Serial.print("speed:");
-  Serial.println(speed);
+  Serial.print("timeGyroscopeMeasurment:");
+  Serial.println(timeTest1-currentTime);
 
-  if (flywheelMotorSpeedOverUpperBound() && input > TORQUE_FOR_CONSTANT_SPEED) {
-    setFlywheelMotorTorque(TORQUE_FOR_CONSTANT_SPEED);
-  }
-  else if (flywheelMotorSpeedUnderLowerBound() && input < -TORQUE_FOR_CONSTANT_SPEED) {
-    setFlywheelMotorTorque(-TORQUE_FOR_CONSTANT_SPEED);
-  }
-  else {
-    // The safety bounds are applied within the function
-    setFlywheelMotorTorque(input);
-  }
+  // float speed = getFlywheelMotorSpeed();
+  // Serial.print(",");
+  // Serial.print("speed:");
+  // Serial.println(speed);
+
+  // if (flywheelMotorSpeedOverUpperBound() && input > TORQUE_FOR_CONSTANT_SPEED) {
+  //   setFlywheelMotorTorque(TORQUE_FOR_CONSTANT_SPEED);
+  // }
+  // else if (flywheelMotorSpeedUnderLowerBound() && input < -TORQUE_FOR_CONSTANT_SPEED) {
+  //   setFlywheelMotorTorque(-TORQUE_FOR_CONSTANT_SPEED);
+  // }
+  // else {
+  //   // The safety bounds are applied within the function
+  //   setFlywheelMotorTorque(input);
+  // }
+  setFlywheelMotorTorque(input);
   
   lastTime = currentTime;
 }
@@ -365,8 +383,8 @@ float ogBalancingImplementation(float gyroX, float angle) {
  */
 float pidBalancingImplementation(long elapsedTime, float angle) {
   // The error of this controller is the angle from the vertical
-  float error = 1 - cos(angle);
-  if (angle < 0) error = -error;
+  float error = angle;
+  // if (angle < 0) error = -error;
 
   // Accumulate the error for the integral (I) term
   // TODO : Should we clamp the value of total_error?
