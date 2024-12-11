@@ -135,7 +135,7 @@ void configurationMode() {
       // Extract the values from the command
       String parts = command.substring(7);
       float newKp, newKi, newKd, max_fw_speed, max_fw_torque, odrive_max_speed;
-      sscanf(parts.c_str(), "%f %f %f %f %f %f", &Kp, &Ki, &Kd, &max_fw_speed, &max_fw_torque, &odrive_max_speed);
+      sscanf(parts.c_str(), "%f %f %f %f %f %f", &newKp, &newKi, &newKd, &max_fw_speed, &max_fw_torque, &odrive_max_speed);
 
       // Update the values
       Kp = newKp;
