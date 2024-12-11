@@ -71,9 +71,23 @@ void printMpuConfiguration() {
  * and the user can adjust the offsets manually.
  */
 void calibrateMpu() {
-  Serial.println("Calibration mode started.");
-  Serial.println("Adjust the offsets and type 'done' when finished.");
-  Serial.println("Use 'help' for a list of available commands.");
+  Serial.println("===========================================");
+  Serial.println();
+  Serial.println("MPU6050 CALIBRATION MODE");
+  Serial.println();
+  Serial.println("===========================================");
+  Serial.println();
+  Serial.println("This mode allows you to adjust the offsets of the MPU6050 sensor based");
+  Serial.println("on the current values read from the sensor.");
+  Serial.println();
+  Serial.println("A good way to calibrate is to place the sensor in a position where the target");
+  Serial.println("value should be 0, then set the corresponding offset to the value read.");
+  Serial.println();
+  Serial.println("Use 'help' for a list of available commands. Use 'shut' to stop dumping measured values.");
+  Serial.println();
+  Serial.println("===========================================");
+
+  bool printValues = false;
 
   // Start the calibration loop
   while (true) {
@@ -83,25 +97,38 @@ void calibrateMpu() {
 
     // Print the values so that they can be plotted on Arduino IDE's
     // Serial Plotter with labels
-    Serial.print("Adjusted accelY:");
-    Serial.print(accelY);
-    Serial.print(",Adjusted accelZ:");
-    Serial.print(accelZ);
-    Serial.print(",Adjusted gyroX:");
-    Serial.print(gyroX);
-    Serial.print(",Raw accelY:");
-    Serial.print(accelY + accelYoffset);
-    Serial.print(",Raw accelZ:");
-    Serial.print(accelZ + accelZoffset);
-    Serial.print(",Raw gyroX:");
-    Serial.println(gyroX + gyroXoffset);
+    if (printValues) {
+      Serial.print("Adjusted accelY:");
+      Serial.print(accelY);
+      Serial.print(",Adjusted accelZ:");
+      Serial.print(accelZ);
+      Serial.print(",Adjusted gyroX:");
+      Serial.print(gyroX);
+      Serial.print(",Raw accelY:");
+      Serial.print(accelY + accelYoffset);
+      Serial.print(",Raw accelZ:");
+      Serial.print(accelZ + accelZoffset);
+      Serial.print(",Raw gyroX:");
+      Serial.println(gyroX + gyroXoffset);
+    }
 
-    // Check if the user has typed 'done'
+    // Check if the user has typed a command
     if (Serial.available() > 0) {
       String command = Serial.readStringUntil('\n');
-      if (command == "help") {
-        Serial.println("Set an offset manually by using 'set [accelY/accelZ/gyroX] <value>'.");
-        Serial.println("End the interactive calibration process with 'done'.");
+      if (command == "plot") {
+        printValues = true;
+      }
+      else if (command == "shut") {
+        printValues = false;
+      }
+      else if (command == "help") {
+        Serial.println();
+        Serial.println("Available commands:");
+        Serial.println("'plot' - Start printing values read from the sensor.");
+        Serial.println("'shut' - Stop printing values from the sensor." );
+        Serial.println("'set [accelY/accelZ/gyroX] <value>' - Set an offset manually.");
+        Serial.println("'done' or 'exit' or 'quit' - End the interactive calibration process.");
+        Serial.println();
       }
       else if (command.startsWith("set ")) {
         String name = command.substring(4);
@@ -128,7 +155,7 @@ void calibrateMpu() {
           Serial.println("'.");
         }
       }
-      else if (command == "done") {
+      else if (command == "done" || command == "exit" || command == "quit") {
         break;
       }
       else if (command != NULL) {
@@ -140,7 +167,12 @@ void calibrateMpu() {
   }
 
   // Inform the user the calibration is done
-  Serial.println("Calibration done.");
+  Serial.println();
+  Serial.println("===========================================");
+  Serial.println();
+  Serial.println("END OF CALIBRATION MODE");
+  Serial.println();
+  Serial.println("===========================================");
 }
 
 /**
