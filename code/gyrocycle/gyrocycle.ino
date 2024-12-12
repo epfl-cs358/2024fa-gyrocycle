@@ -47,6 +47,9 @@ float Kd = 0.0;
 // Indicates whether the current running mode is configuration or balancing
 int isInConfigurationMode = 1;
 
+// Indicates whether to print values for plotting when balancing or not
+bool plotterEnabled = true;
+
 OneEuroFilter oneEuroGyroFilter = OneEuroFilter(DEFAULT_FREQUENCY, 1.0, 0.01, DEFAULT_DCUTOFF);
 OneEuroFilter oneEuroAngleAccFilter = OneEuroFilter(DEFAULT_FREQUENCY, 1.0, 0.01, DEFAULT_DCUTOFF);
 
@@ -258,6 +261,19 @@ void configurationMode()
       Serial.println();
       Serial.println("===========================================");
     }
+    else if (command.startsWith("plotter")) {
+      if (command == "plotter on" || command == "plotter true" || command == "plotter 1") {
+        plotterEnabled = true;
+        Serial.println("Plotting logs are now enabled.");
+      }
+      else if (command == "plotter off" || command == "plotter false" || command == "plotter 0") {
+        plotterEnabled = false;
+        Serial.println("Plotting logs are now disabled.");
+      }
+      else {
+        Serial.println("Usage: plotter <on/off>");
+      }
+    }
     else if (command == "print")
     {
       Serial.println("===========================================");
@@ -278,6 +294,10 @@ void configurationMode()
       Serial.println(Ki);
       Serial.print("Kd: ");
       Serial.println(Kd);
+      Serial.println("===========================================");
+      Serial.println("General:");
+      Serial.print("Plotting enabled: ");
+      Serial.println(plotterEnabled);
       Serial.println("===========================================");
     }
     else if (command == "odrive_repl")
@@ -394,9 +414,11 @@ void balancingMode()
 
   currentTime = millis();
 
-  Serial.print("timeOdriveInteraction:");
-  Serial.print(currentTime - timeTest1);
-  Serial.print(",");
+  if (plotterEnabled) {
+    Serial.print("timeOdriveInteraction:");
+    Serial.print(currentTime - timeTest1);
+    Serial.print(",");
+  }
 
   timeTest1 = millis();
   // rotation rate around X axis and angle from vertical
@@ -409,14 +431,16 @@ void balancingMode()
   }
 
   // monitoring purposes
-  Serial.print("angle:");
-  Serial.print(angle);
-  Serial.print(",");
-  Serial.print("input:");
-  Serial.print(input);
-  Serial.print(",");
-  Serial.print("timeGyroscopeMeasurment:");
-  Serial.println(timeTest1 - currentTime);
+  if (plotterEnabled) {
+    Serial.print("angle:");
+    Serial.print(angle);
+    Serial.print(",");
+    Serial.print("input:");
+    Serial.print(input);
+    Serial.print(",");
+    Serial.print("timeGyroscopeMeasurment:");
+    Serial.println(timeTest1 - currentTime);
+  }
 
   // float speed = getFlywheelMotorSpeed();
   // Serial.print(",");
