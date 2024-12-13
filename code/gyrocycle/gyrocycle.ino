@@ -18,11 +18,14 @@
 #define ANGLE_MARGIN 0.01f
 
 // Angle and uncertainty at each step
-float kalman_pred[] = {INITIAL_KALMAN_ANGLE, INITIAL_KALMAN_UNCERTAINTY};
-
-unsigned long lastTime = 0;
+float angle = INITIAL_KALMAN_ANGLE;
+float uncertainty = INITIAL_KALMAN_UNCERTAINTY;
+unsigned long lastAngleUpdateTime = 0;
 unsigned long currentTime = 0;
-unsigned long timeTest1 = 0;
+
+unsigned long lastLoopTime = 0;
+unsigned long currentLoopTime = 0;
+
 
 // model characteristics
 const float mass = 2;               // in kg
@@ -34,6 +37,9 @@ const float rotationWeight = 0.1;
 
 // Which controller to use to determine what torque the flywheel should have
 String controllerMode = "PID";
+
+// Which filter to use for angle calculation
+String filter = "KALMAN";
 
 // Error terms for the PID controller
 float previous_error = 0.0;
@@ -53,8 +59,7 @@ bool plotterEnabled = true;
 OneEuroFilter oneEuroGyroFilter = OneEuroFilter(DEFAULT_FREQUENCY, 1.0, 0.01, DEFAULT_DCUTOFF);
 OneEuroFilter oneEuroAngleAccFilter = OneEuroFilter(DEFAULT_FREQUENCY, 1.0, 0.01, DEFAULT_DCUTOFF);
 
-float angle = 0.0;
-unsigned long lastAngleUpdateTime = 0.0;
+
 
 float movingAverage[MOVING_AVERAGE_SIZE];
 int movingAverageIndex = 0;
@@ -75,10 +80,12 @@ void switchMode()
   {
     Serial.println("Preparing for balancing mode...");
     Serial.println("Resetting state variables...");
-    kalman_pred[0] = INITIAL_KALMAN_ANGLE;
-    kalman_pred[1] = INITIAL_KALMAN_UNCERTAINTY;
-    lastTime = 0;
+    angle = INITIAL_KALMAN_ANGLE;
+    uncertainty = INITIAL_KALMAN_UNCERTAINTY;
+    lastAngleUpdateTime = 0;
     currentTime = 0;
+    lastLoopTime = 0;
+    currentLoopTime = 0;
     total_error = 0.0;
     Serial.println("State variables reset.");
     Serial.println("Entering balancing mode.");
@@ -373,31 +380,19 @@ void updateGyroAngle()
   float accelY, accelZ, gyroX, gyroY, gyroZ;
   mpuMeasure(nullptr, &accelY, &accelZ, &gyroX, &gyroY, &gyroZ);
 
-  unsigned long currentTime = micros();
-  float filteredGyroX = oneEuroGyroFilter.filter(gyroX, (float)(currentTime / 1000000.0f));
-  float predictedAngle = angle + (float)(currentTime - lastAngleUpdateTime) / 1000000.0f * filteredGyroX;
-  float filteredAccAngle = oneEuroAngleAccFilter.filter((float)atan(accelY / accelZ), (float)(currentTime / 1000000.0f));
-
-  // This correct term is the angle calculated with the accelerometer
-  float newAngle = 0.0;
-
-  // If the gyroscope is not moving, the accelerometer is more reliable
-  if (filteredGyroX < 0.01f && filteredGyroX > -0.01f && gyroY < 0.1f && gyroY > -0.1f && gyroZ < 0.1f && gyroZ > -0.1f)
-  {
-    newAngle = (float)((1 - ANGLE_ALPHA) * predictedAngle + ANGLE_ALPHA * filteredAccAngle);
+  if (filter == "KALMAN"){
+    angleCalculatorKalman(accelY, accelZ, gyroX);
   }
-  else
-  {
-    newAngle = (float)(ANGLE_ALPHA * predictedAngle + (1 - ANGLE_ALPHA) * filteredAccAngle);
+  else if (filter == "EURO"){
+    angleCalculatorEuro(accelY, accelZ, gyroX, gyroY, gyroZ);
   }
-  angle = newAngle;
-  lastAngleUpdateTime = currentTime;
+
 }
 
 void balancingMode()
 {
   // Check that the angle is within the safety bounds, otherwise stop balancing
-  if (kalman_pred[0] <= (-M_PI / 4) || kalman_pred[0] >= (M_PI / 4))
+  if (angle <= (-M_PI / 4) || angle >= (M_PI / 4))
   {
     Serial.println("Safety angle limit reached, stopping motor...");
     switchMode();
@@ -412,35 +407,27 @@ void balancingMode()
     return;
   }
 
-  currentTime = millis();
-
-  if (plotterEnabled) {
-    Serial.print("timeOdriveInteraction:");
-    Serial.print(currentTime - timeTest1);
-    Serial.print(",");
-  }
-
-  timeTest1 = millis();
-  // rotation rate around X axis and angle from vertical
+  currentLoopTime = micros();
 
   // flywheel motor input (constrained for safety)
   float input = 0;
   if (controllerMode == "PID")
   {
-    input = pidBalancingImplementation(currentTime - lastTime, angle);
+    input = pidBalancingImplementation(currentLoopTime - lastLoopTime, angle);
   }
 
   // monitoring purposes
   if (plotterEnabled) {
+    Serial.print("elapsedTime(microseconds):");
+    Serial.print(currentLoopTime - lastLoopTime);
+    Serial.print(",");
     Serial.print("angle:");
     Serial.print(angle);
     Serial.print(",");
     Serial.print("input:");
-    Serial.print(input);
-    Serial.print(",");
-    Serial.print("timeGyroscopeMeasurment:");
-    Serial.println(timeTest1 - currentTime);
+    Serial.println(input);
   }
+  
 
   // float speed = getFlywheelMotorSpeed();
   // Serial.print(",");
@@ -459,7 +446,7 @@ void balancingMode()
   // }
   setFlywheelMotorTorque(input);
 
-  lastTime = currentTime;
+  lastLoopTime = currentLoopTime;
 }
 
 /**
@@ -490,7 +477,7 @@ float ogBalancingImplementation(float gyroX, float angle)
  *
  * @return float The torque that should be applied to the flywheel motor.
  */
-float pidBalancingImplementation(long elapsedTime, float angle)
+float pidBalancingImplementation(unsigned long elapsedTime, float angle)
 {
   // The error of this controller is the angle from the vertical
   float error = angle;
@@ -498,10 +485,10 @@ float pidBalancingImplementation(long elapsedTime, float angle)
 
   // Accumulate the error for the integral (I) term
   // TODO : Should we clamp the value of total_error?
-  total_error += error * elapsedTime;
+  total_error += error * elapsedTime / 1000000.0;
 
   // Calculate the derivative (D) term
-  float derivative = (error - previous_error) / elapsedTime;
+  float derivative = (error - previous_error) / (elapsedTime / 1000000.0);
 
   // Update the previous error
   previous_error = error;
@@ -511,17 +498,43 @@ float pidBalancingImplementation(long elapsedTime, float angle)
 }
 
 // calculates tilt angle from sensor readings
-void angleCalculator(float accelY, float accelZ, float gyroX, float *last_step, unsigned long deltaTime)
+void angleCalculatorKalman(float accelY, float accelZ, float gyroX)
 {
+  unsigned long currentTime = micros();
 
   float acc_angle = atan(accelY / accelZ);                    // angle calculated with accelerometer readings
-  float gyro_angle = last_step[0] + deltaTime / 1000 * gyroX; // angle integrated from gyroscope readings
+  float gyro_angle = angle + (currentTime - lastAngleUpdateTime) / 1000000.0 * gyroX; // angle integrated from gyroscope readings
 
-  float uncertainty = last_step[1] + (deltaTime / 1000.0) * (deltaTime / 1000.0) * 0.00487; // 0,00487 is the assumed variance on the rotation rate (std deviation of 4 deg/s)
+  float uncertainty = uncertainty + ((currentTime - lastAngleUpdateTime) / 1000000.0) * ((currentTime - lastAngleUpdateTime) / 1000000.0) * 0.00487; // 0,00487 is the assumed variance on the rotation rate (std deviation of 4 deg/s)
   // calculate kalman gain
   float gain = uncertainty / (uncertainty + 0.00274); // 0.00274 is the assumed variance of the measured angle with the accelerometer (std deviation of 3 deg)
   // angle calculated with the kalman filter
-  last_step[0] = gyro_angle + gain * (acc_angle - gyro_angle);
+  angle = gyro_angle + gain * (acc_angle - gyro_angle);
   // update uncertainty
-  last_step[1] = (1 - gain) * uncertainty;
+  uncertainty = (1 - gain) * uncertainty;
+
+  lastAngleUpdateTime = currentTime;
+}
+
+void angleCalculatorEuro(float accelY, float accelZ, float gyroX, float gyroY, float gyroZ)
+{
+  unsigned long currentTime = micros();
+  float filteredGyroX = oneEuroGyroFilter.filter(gyroX, (float)(currentTime / 1000000.0f));
+  float predictedAngle = angle + (float)(currentTime - lastAngleUpdateTime) / 1000000.0f * filteredGyroX;
+  float filteredAccAngle = oneEuroAngleAccFilter.filter((float)atan(accelY / accelZ), (float)(currentTime / 1000000.0f));
+
+  // This correct term is the angle calculated with the accelerometer
+  float newAngle = 0.0;
+
+  // If the gyroscope is not moving, the accelerometer is more reliable
+  if (filteredGyroX < 0.01f && filteredGyroX > -0.01f && gyroY < 0.1f && gyroY > -0.1f && gyroZ < 0.1f && gyroZ > -0.1f)
+  {
+    newAngle = (float)((1 - ANGLE_ALPHA) * predictedAngle + ANGLE_ALPHA * filteredAccAngle);
+  }
+  else
+  {
+    newAngle = (float)(ANGLE_ALPHA * predictedAngle + (1 - ANGLE_ALPHA) * filteredAccAngle);
+  }
+  angle = newAngle;
+  lastAngleUpdateTime = currentTime;
 }
