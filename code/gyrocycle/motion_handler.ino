@@ -18,9 +18,10 @@
 
 // RemoteXY GUI configuration that will be sent to the connecting device
 #pragma pack(push, 1)  
-uint8_t RemoteXY_CONF[] =   // 36 bytes
-  { 255,2,0,0,0,29,0,19,0,0,0,0,31,1,200,84,1,1,2,0,
-  4,174,3,16,77,48,2,26,4,3,32,77,16,176,2,26 };
+uint8_t RemoteXY_CONF[] =   // 53 bytes
+  { 255,3,0,0,0,46,0,19,0,0,0,0,31,1,200,84,1,1,3,0,
+  4,177,4,16,77,48,2,26,4,3,32,77,16,176,2,26,2,89,4,26,
+  14,0,2,26,31,31,79,78,0,79,70,70,0 };
 
 // This structure defines all the variables and events of your control interface 
 // 
@@ -28,6 +29,7 @@ struct {
     // input variables
   int8_t speedSlider; // from -100 to 100
   int8_t steeringSlider; // from -100 to 100
+  uint8_t start_stop; // =1 if switch ON and =0 if OFF
 
     // other variable
   uint8_t connect_flag;  // =1 if wire connected, else =0
@@ -49,6 +51,8 @@ struct {
 
 // Limit how much the Servo can steer
 #define MAX_STEERING_ANGLE 60
+
+int isStarted = 0;
 
 unsigned long motionLastUpdate = 0;
 // Update every 50ms
@@ -116,6 +120,11 @@ void handleRemoteControlEvents() {
       else {
         propulsionBackward(motorSpeed);
       }
+    }
+
+    if (isStarted != RemoteXY.start_stop) {
+      isStarted = RemoteXY.start_stop;
+      switchMode();
     }
 }
 
