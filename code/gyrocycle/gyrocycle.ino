@@ -45,6 +45,9 @@ String filter = "KALMAN";
 float previous_error = 0.0;
 float total_error = 0.0;
 
+// used to change the stabilization point
+float angleCorrection = -0.01;
+
 // PID constants
 float Kp = 0;
 float Ki = 0.0;
@@ -366,6 +369,10 @@ void configurationMode()
     {
       switchMode();
     }
+    else if (command.startsWith("setpoint "))
+    {
+      angleCorrection = command.substring(command.indexOf(' ') + 1).toFloat();
+    }
     else
     {
       Serial.print("Unknown command: '");
@@ -422,10 +429,10 @@ void balancingMode()
     Serial.print(currentLoopTime - lastLoopTime);
     Serial.print(",");
     Serial.print("angle:");
-    Serial.print(angle);
+    Serial.print(angle,5);
     Serial.print(",");
     Serial.print("input:");
-    Serial.println(input);
+    Serial.println(input,5);
   }
   
 
@@ -480,7 +487,7 @@ float ogBalancingImplementation(float gyroX, float angle)
 float pidBalancingImplementation(unsigned long elapsedTime, float angle)
 {
   // The error of this controller is the angle from the vertical
-  float error = angle;
+  float error = angle - angleCorrection;
   // if (angle < 0) error = -error;
 
   // Accumulate the error for the integral (I) term
