@@ -134,6 +134,10 @@ void setup(void)
   calibrateInitialAngle();
   Serial.println("MPU6050 calibrated.");
 
+  Serial.println("Setting up RemoteXY...");
+  initMotion();
+  Serial.println("RemoteXY ready");
+
   Serial.println("Setup complete.");
   Serial.println("Starting in 3...");
   delay(1000);
@@ -145,6 +149,7 @@ void setup(void)
 
 void loop()
 {
+  handleRemoteControlEvents();
   updateGyroAngle();
   // Run one iteration at a time instead of blocking in configuration or balancing mode.
   // This allows RemoteXY to handle bluetooth inputs under the hood, between two loops.

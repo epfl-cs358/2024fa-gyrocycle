@@ -47,7 +47,7 @@ struct {
 #define PROPULSION_PIN_2 12 // IN2
 
 // Pin to wire the Servo used for steering to
-#define STEERING_SERVO_PIN 2
+#define STEERING_SERVO_PIN 15
 
 // Limit how much the Servo can steer
 #define MAX_STEERING_ANGLE 60
