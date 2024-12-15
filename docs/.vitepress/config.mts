@@ -19,6 +19,10 @@ export default defineConfig({
       { text: 'Glossary', link: '/glossary/' }
     ],
 
+    search: {
+      provider: 'local'
+    },
+
     logo: {
       light: '/assets/images/logo-light.svg',
       dark: '/assets/images/logo-dark.svg',
