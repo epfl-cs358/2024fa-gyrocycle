@@ -19,6 +19,11 @@ export default defineConfig({
       { text: 'Glossary', link: '/glossary/' }
     ],
 
+    editLink: {
+      pattern: "https://github.com/epfl-cs358/2024fa-gyrocycle/edit/docs/docs/:path",
+      text: "Suggest an edit of this page"
+    },
+
     search: {
       provider: 'local'
     },
