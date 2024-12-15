@@ -1,5 +1,6 @@
 ---
 title: GyroCycle Docs
+prev: false
 next: false
 ---
 
@@ -12,3 +13,7 @@ This is the end product:
 ![`A bicycle image should be displayed here`](assets/images/bicycle.jpg)
 
 This documentation is a work in progress.
+
+::: tip TODO
+Do a better home page and add a link to the guide
+:::
