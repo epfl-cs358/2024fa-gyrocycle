@@ -60,6 +60,14 @@ def configure_odrive():
     odrv0.config.max_regen_current = 0
     odrv0.save_configuration()
 
+    print("Rebooting ODrive...")
+    try:
+        odrv0.reboot()
+    except:
+        print("Reboot command failed - this is normal")
+    time.sleep(5)
+    odrv0 = reconnect_to_odrive()
+
     # Motor configuration
     print("Configuring motor parameters...")
     odrv0.axis0.motor.config.pole_pairs = 7
@@ -72,6 +80,14 @@ def configure_odrive():
     odrv0.axis0.encoder.config.cpr = 8192
     odrv0.axis0.config.calibration_lockin.current = 15
     odrv0.save_configuration()
+
+    print("Rebooting ODrive...")
+    try:
+        odrv0.reboot()
+    except:
+        print("Reboot command failed - this is normal")
+    time.sleep(5)
+    odrv0 = reconnect_to_odrive()
 
     # Controller configuration
     print("Configuring controller parameters...")
@@ -124,6 +140,14 @@ def configure_odrive():
     odrv0.axis0.encoder.config.use_index = False
     odrv0.axis0.encoder.config.pre_calibrated = False
     odrv0.save_configuration()
+
+    print("Rebooting ODrive...")
+    try:
+        odrv0.reboot()
+    except:
+        print("Reboot command failed - this is normal")
+    time.sleep(5)
+    odrv0 = reconnect_to_odrive()
     
     print("Setup complete!")
     return odrv0
