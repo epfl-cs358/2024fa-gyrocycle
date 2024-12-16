@@ -13,4 +13,4 @@ This guide will walk you through:
 
 By following this guide, you should obtain a balancing bicycle.
 
-Let's get right into it with the tools you will need access to.
+Let's get right into it with a few words of caution.
