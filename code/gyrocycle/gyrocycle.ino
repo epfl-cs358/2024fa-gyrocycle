@@ -49,9 +49,9 @@ float total_error = 0.0;
 float angleCorrection = -0.01;
 
 // PID constants
-float Kp = 0;
-float Ki = 0.0;
-float Kd = 0.0;
+float Kp = 1.5;
+float Ki = 0.0000001;
+float Kd = 0.1;
 
 // Indicates whether the current running mode is configuration or balancing
 int isInConfigurationMode = 1;
