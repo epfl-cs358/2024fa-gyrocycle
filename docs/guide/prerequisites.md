@@ -2,10 +2,6 @@
 
 Unlink open-source software, open-hardware requires you to *build* the thing. Hence, you will need access to some tools to manufacture the bike:
 
-::: tip TODO
-Change the indent of bullet points, because right now it's ugly
-:::
-
 - **3D Printer**
     
     Parts of the bicycle have to be 3D-printed. You will need access to a 3D-printer that can print with [**PETG**](https://en.wikipedia.org/wiki/Polyethylene_terephthalate) and [**TPU**](https://en.wikipedia.org/wiki/Thermoplastic_polyurethane) (for the bike's tires).

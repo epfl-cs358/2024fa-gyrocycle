@@ -2,10 +2,6 @@
 
 Welcome to the DIY guide of the [GyroCycle](/) project. This guide is intended for you to build the bike for yourself, as GyroCycle is an [open-hardware](https://www.oshwa.org/definition/) project.
 
-::: tip TODO
-Change the indent of bullet points, because right now it's ugly
-:::
-
 This guide will walk you through:
 
 1. A few words of caution about the dangers of the project's components
