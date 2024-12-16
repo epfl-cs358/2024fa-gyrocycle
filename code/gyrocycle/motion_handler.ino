@@ -94,7 +94,7 @@ void handleRemoteControlEvents() {
   bool motorDirection = RemoteXY.speedSlider >= 0;
 
   // Map the steering slider value (-100 to 100) to servo angle (0 to 180)
-  int steeringAngle = -1.0f * map(RemoteXY.steeringSlider, 100, -100, 90 - MAX_STEERING_ANGLE, 90 + MAX_STEERING_ANGLE);
+  int steeringAngle = map(RemoteXY.steeringSlider, 100, -100, 90 + MAX_STEERING_ANGLE, 90 - MAX_STEERING_ANGLE);
 
   // Update the Servo angle for steering
   steeringServo.write(steeringAngle);

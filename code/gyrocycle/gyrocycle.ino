@@ -157,11 +157,6 @@ void loop()
     return;
   }
 
-  if(!isRemoteXYConnected()) {
-    Serial.println("Waiting for RemoteXY to connect");
-    stopAll();
-  }
-
   handleRemoteControlEvents();
   updateGyroAngle();
 
@@ -586,10 +581,9 @@ void stopAll() {
 }
 
 void safetyStop() {
-    Serial.println("SAFETY STOP TRIGGERED");
-    while(1) {
+  Serial.println("SAFETY STOP TRIGGERED");
+  while(1) {
     stopFlywheelMotor();
     stopPropulsionMotor();
-    return;
   }
 }
