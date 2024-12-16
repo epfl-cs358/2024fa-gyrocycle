@@ -94,38 +94,28 @@ void handleRemoteControlEvents() {
   bool motorDirection = RemoteXY.speedSlider >= 0;
 
   // Map the steering slider value (-100 to 100) to servo angle (0 to 180)
-  int steeringAngle = map(RemoteXY.steeringSlider, 100, -100, 90 - MAX_STEERING_ANGLE, 90 + MAX_STEERING_ANGLE);
+  int steeringAngle = -1.0f * map(RemoteXY.steeringSlider, 100, -100, 90 - MAX_STEERING_ANGLE, 90 + MAX_STEERING_ANGLE);
 
-  // Print values for debugging
-    Serial.print("Speed Slider: ");
-    Serial.print(RemoteXY.speedSlider);
-    Serial.print(" | Steering Slider: ");
-    Serial.print(RemoteXY.steeringSlider);
-    Serial.print(" | Motor Speed: ");
-    Serial.print(motorSpeed);
-    Serial.print(" | Steering Angle: ");
-    Serial.println(steeringAngle);
+  // Update the Servo angle for steering
+  steeringServo.write(steeringAngle);
 
-    // Update the Servo angle for steering
-    steeringServo.write(steeringAngle);
-
-    // Update the speed of the propulsion motor
-    if (motorSpeed == 0) {
-      stopPropulsionMotor();
+  // Update the speed of the propulsion motor
+  if (motorSpeed == 0) {
+    stopPropulsionMotor();
+  }
+  else {
+    if (motorDirection) {
+      propulsionForward(motorSpeed);
     }
     else {
-      if (motorDirection) {
-        propulsionForward(motorSpeed);
-      }
-      else {
-        propulsionBackward(motorSpeed);
-      }
+      propulsionBackward(motorSpeed);
     }
+  }
 
-    if (isStarted != RemoteXY.start_stop) {
-      isStarted = RemoteXY.start_stop;
-      switchMode();
-    }
+  if (isStarted != RemoteXY.start_stop) {
+    isStarted = RemoteXY.start_stop;
+    switchMode();
+  }
 }
 
 /**
@@ -170,4 +160,8 @@ void propulsionBackward(int motorSpeed) {
 void stopPropulsionMotor() {
   analogWrite(PROPULSION_PIN_1, LOW);
   analogWrite(PROPULSION_PIN_2, LOW);
+}
+
+bool isRemoteXYConnected() {
+  return RemoteXY_isConnected();
 }

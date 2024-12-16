@@ -17,6 +17,8 @@
 
 #define ANGLE_MARGIN 0.01f
 
+#define MINIMUM_VOLTAGE 11.3f // Volts
+
 // Angle and uncertainty at each step
 float angle = INITIAL_KALMAN_ANGLE;
 float uncertainty = INITIAL_KALMAN_UNCERTAINTY;
@@ -25,7 +27,6 @@ unsigned long currentTime = 0;
 
 unsigned long lastLoopTime = 0;
 unsigned long currentLoopTime = 0;
-
 
 // model characteristics
 const float mass = 2;               // in kg
@@ -48,6 +49,9 @@ float total_error = 0.0;
 // used to change the stabilization point
 float angleCorrection = -0.01;
 
+// margin of error for the angle to be considered vertical
+float angleMargin = 0.00;
+
 // PID constants
 float Kp = 1.5;
 float Ki = 0.0000001;
@@ -61,8 +65,6 @@ bool plotterEnabled = true;
 
 OneEuroFilter oneEuroGyroFilter = OneEuroFilter(DEFAULT_FREQUENCY, 1.0, 0.01, DEFAULT_DCUTOFF);
 OneEuroFilter oneEuroAngleAccFilter = OneEuroFilter(DEFAULT_FREQUENCY, 1.0, 0.01, DEFAULT_DCUTOFF);
-
-
 
 float movingAverage[MOVING_AVERAGE_SIZE];
 int movingAverageIndex = 0;
@@ -149,8 +151,20 @@ void setup(void)
 
 void loop()
 {
+  if(getVbusVoltage() < MINIMUM_VOLTAGE) {
+    Serial.println("MINIMUM VOLTAGE ERROR");
+    safetyStop();
+    return;
+  }
+
+  if(!isRemoteXYConnected()) {
+    Serial.println("Waiting for RemoteXY to connect");
+    stopAll();
+  }
+
   handleRemoteControlEvents();
   updateGyroAngle();
+
   // Run one iteration at a time instead of blocking in configuration or balancing mode.
   // This allows RemoteXY to handle bluetooth inputs under the hood, between two loops.
   if (isInConfigurationMode)
@@ -273,19 +287,25 @@ void configurationMode()
       Serial.println();
       Serial.println("---------------- start");
       Serial.println("Exits the configuration mode and starts the balancing loop.");
+      Serial.println("---------------- angle_margin");
+      Serial.println("Sets the margin of error for the angle to be considered vertical.");
       Serial.println();
       Serial.println("===========================================");
     }
-    else if (command.startsWith("plotter")) {
-      if (command == "plotter on" || command == "plotter true" || command == "plotter 1") {
+    else if (command.startsWith("plotter"))
+    {
+      if (command == "plotter on" || command == "plotter true" || command == "plotter 1")
+      {
         plotterEnabled = true;
         Serial.println("Plotting logs are now enabled.");
       }
-      else if (command == "plotter off" || command == "plotter false" || command == "plotter 0") {
+      else if (command == "plotter off" || command == "plotter false" || command == "plotter 0")
+      {
         plotterEnabled = false;
         Serial.println("Plotting logs are now disabled.");
       }
-      else {
+      else
+      {
         Serial.println("Usage: plotter <on/off>");
       }
     }
@@ -378,6 +398,10 @@ void configurationMode()
     {
       angleCorrection = command.substring(command.indexOf(' ') + 1).toFloat();
     }
+    else if (command.startsWith("angle_margin "))
+    {
+      angleMargin = command.substring(command.indexOf(' ') + 1).toFloat();
+    }
     else
     {
       Serial.print("Unknown command: '");
@@ -392,13 +416,14 @@ void updateGyroAngle()
   float accelY, accelZ, gyroX, gyroY, gyroZ;
   mpuMeasure(nullptr, &accelY, &accelZ, &gyroX, &gyroY, &gyroZ);
 
-  if (filter == "KALMAN"){
+  if (filter == "KALMAN")
+  {
     angleCalculatorKalman(accelY, accelZ, gyroX);
   }
-  else if (filter == "EURO"){
+  else if (filter == "EURO")
+  {
     angleCalculatorEuro(accelY, accelZ, gyroX, gyroY, gyroZ);
   }
-
 }
 
 void balancingMode()
@@ -429,17 +454,17 @@ void balancingMode()
   }
 
   // monitoring purposes
-  if (plotterEnabled) {
+  if (plotterEnabled)
+  {
     Serial.print("elapsedTime(microseconds):");
     Serial.print(currentLoopTime - lastLoopTime);
     Serial.print(",");
     Serial.print("angle:");
-    Serial.print(angle,5);
+    Serial.print(angle, 5);
     Serial.print(",");
     Serial.print("input:");
-    Serial.println(input,5);
+    Serial.println(input, 5);
   }
-  
 
   // float speed = getFlywheelMotorSpeed();
   // Serial.print(",");
@@ -493,6 +518,10 @@ float pidBalancingImplementation(unsigned long elapsedTime, float angle)
 {
   // The error of this controller is the angle from the vertical
   float error = angle - angleCorrection;
+  if (-angleMargin < error && error < angleMargin)
+  {
+    error = 0;
+  }
   // if (angle < 0) error = -error;
 
   // Accumulate the error for the integral (I) term
@@ -514,7 +543,7 @@ void angleCalculatorKalman(float accelY, float accelZ, float gyroX)
 {
   unsigned long currentTime = micros();
 
-  float acc_angle = atan(accelY / accelZ);                    // angle calculated with accelerometer readings
+  float acc_angle = atan(accelY / accelZ);                                            // angle calculated with accelerometer readings
   float gyro_angle = angle + (currentTime - lastAngleUpdateTime) / 1000000.0 * gyroX; // angle integrated from gyroscope readings
 
   float uncertainty = uncertainty + ((currentTime - lastAngleUpdateTime) / 1000000.0) * ((currentTime - lastAngleUpdateTime) / 1000000.0) * 0.00487; // 0,00487 is the assumed variance on the rotation rate (std deviation of 4 deg/s)
@@ -549,4 +578,18 @@ void angleCalculatorEuro(float accelY, float accelZ, float gyroX, float gyroY, f
   }
   angle = newAngle;
   lastAngleUpdateTime = currentTime;
+}
+
+void stopAll() {
+  stopFlywheelMotor();
+  stopPropulsionMotor();
+}
+
+void safetyStop() {
+    Serial.println("SAFETY STOP TRIGGERED");
+    while(1) {
+    stopFlywheelMotor();
+    stopPropulsionMotor();
+    return;
+  }
 }

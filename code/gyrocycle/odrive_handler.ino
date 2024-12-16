@@ -248,3 +248,7 @@ void printMaxReached(){
   absSpeedReached = 0;
   absTorqueReached = 0;
 }
+
+float getVbusVoltage() {
+  return odrive.getParameterAsFloat("vbus_voltage");
+}
