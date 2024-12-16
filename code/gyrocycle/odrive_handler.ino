@@ -12,8 +12,8 @@
 #define ODRIVE_BAUD 115200
 
 // Some safety constants
-float flywheelMaxSpeed = 30;
-float flywheelMaxTorque = 1;
+float flywheelMaxSpeed = 80;
+float flywheelMaxTorque = 0.5;
 // boolean to check if the limits have been hit
 float absSpeedReached = 0;
 float absTorqueReached = 0;
@@ -57,6 +57,7 @@ void initOdriveCommunication() {
     odrive.setState(AXIS_STATE_CLOSED_LOOP_CONTROL);
     delay(10);
   }
+  setOdriveConfigMaxSpeed(flywheelMaxSpeed);
   Serial.println("ODrive running.");
 }
 
