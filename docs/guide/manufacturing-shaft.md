@@ -16,4 +16,8 @@ Ask the person who manufactured the shaft what I can write here.
 Add a picture of the flywheel shaft.
 :::
 
+::: tip TODO
+Stabilize the shaft while manufacturing it on both sides to avoid it wigling.
+:::
+
 The flywheel shaft was the last missing component. Now that all parts are available, we can start the actual assembly of the bike.
