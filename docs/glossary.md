@@ -20,3 +20,9 @@ Define child wheels.
 ::: tip TODO
 Define flywheel.
 :::
+
+## Stand
+
+::: tip TODO
+Define stand.
+:::
