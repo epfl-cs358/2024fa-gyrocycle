@@ -4,14 +4,20 @@ GyroCycle requires you to solder a few wires together to properly work. Below is
 
 ## Soldering to the MPU6050
 
-::: tip TODO
-Document how the soldering of the MPU cables is to be done.
-:::
+You will need to solder five **female connectors** to the MPU6050 sensor. A length of approximately 10 centimeters is fine for those. The wires need to be connected to
+
+- `VCC`
+- `GND`
+- `SCL`
+- `SDA`
+- `INT`
+
+<img src="/assets/images/mpu-6050.png" width="100" />
 
 ## Soldering the LIPO protection circuit
 
 ::: tip TODO
-Document what to solder for the LIPO protection circuit.
+Document what to solder for the LIPO protection circuit, if we decide to document that part.
 :::
 
 ## Soldering power supply wires
