@@ -2,6 +2,8 @@
 
 import odrive
 from odrive.enums import *
+from odrive.enums import MOTOR_TYPE_HIGH_CURRENT, AXIS_STATE_MOTOR_CALIBRATION, AXIS_STATE_IDLE, \
+    AXIS_STATE_ENCODER_OFFSET_CALIBRATION, CONTROL_MODE_TORQUE_CONTROL, INPUT_MODE_TORQUE_RAMP
 import time
 
 def wait_for_state(axis, requested_state, timeout=10):
@@ -12,15 +14,42 @@ def wait_for_state(axis, requested_state, timeout=10):
         if time.time() - start_time > timeout:
             raise TimeoutError(f"Timeout waiting for state {requested_state}")
 
+def reconnect_to_odrive():
+    """Helper function to reconnect to ODrive after reboot"""
+    print("Attempting to reconnect...")
+    attempts = 0
+    while attempts < 3:  # Try up to 3 times
+        try:
+            odrv0 = odrive.find_any()
+            test = odrv0.vbus_voltage
+            print(f"Reconnection successful. Bus voltage: {test}V")
+            return odrv0
+        except:
+            print(f"Reconnection attempt {attempts + 1} failed, retrying...")
+            time.sleep(2)
+            attempts += 1
+    
+    raise Exception("Failed to reconnect to ODrive after multiple attempts")
+
 def configure_odrive():
     print("Looking for ODrive...")
-    odrv0 = odrive.find_any()
-    print("ODrive found!")
-
-    # Basic configuration
-    print("Erasing existing configuration...")
-    odrv0.erase_configuration()
     
+    try:
+        odrv0 = odrive.find_any()
+        print("Found ODrive")
+    except:
+        raise Exception("No ODrive found. Is it connected?")
+
+    # Erase configuration
+    try:
+        odrv0.erase_configuration()
+        print("ODrive is rebooting after erase...")
+        time.sleep(5)
+    except:
+        print("Erase configuration failed - this is normal if connection was lost")
+    
+    odrv0 = reconnect_to_odrive()
+
     # Power configuration
     print("Configuring power parameters...")
     odrv0.config.brake_resistance = 2
@@ -40,9 +69,8 @@ def configure_odrive():
     odrv0.axis0.motor.config.resistance_calib_max_voltage = 2
     odrv0.axis0.motor.config.motor_type = MOTOR_TYPE_HIGH_CURRENT
     odrv0.axis0.motor.config.requested_current_range = 35
-    
-    # Encoder configuration
     odrv0.axis0.encoder.config.cpr = 8192
+    odrv0.axis0.config.calibration_lockin.current = 15
     odrv0.save_configuration()
 
     # Controller configuration
@@ -57,9 +85,12 @@ def configure_odrive():
     odrv0.save_configuration()
     
     print("Rebooting ODrive...")
-    odrv0.reboot()
-    time.sleep(5)  # Wait for reboot
-    odrv0 = odrive.find_any()  # Reconnect after reboot
+    try:
+        odrv0.reboot()
+    except:
+        print("Reboot command failed - this is normal")
+    time.sleep(5)
+    odrv0 = reconnect_to_odrive()
 
     # Motor calibration
     print("Starting motor calibration...")
@@ -81,9 +112,12 @@ def configure_odrive():
     odrv0.save_configuration()
     
     print("Rebooting ODrive...")
-    odrv0.reboot()
+    try:
+        odrv0.reboot()
+    except:
+        print("Reboot command failed - this is normal")
     time.sleep(5)
-    odrv0 = odrive.find_any()
+    odrv0 = reconnect_to_odrive()
 
     # Final configuration
     odrv0.axis0.config.startup_encoder_index_search = False
