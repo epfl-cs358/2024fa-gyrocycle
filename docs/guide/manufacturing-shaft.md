@@ -23,7 +23,7 @@ For those reasons, we did not 3D-print this shaft, but manufactured a steel shaf
 
 Don't be scared to reduce the length a little bit. As you can see on pictures, our shaft was a bit too long.
 
-<img src="/assets/images/bicycle.jpg" />
+<img src="/assets/images/flywheel-shaft.jpg" />
 
 ::: tip
 While manufacturing the steel shaft, make sure to stabilize it on both of its ends so that it does not bend during the process.
