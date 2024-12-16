@@ -43,8 +43,8 @@ struct {
 
 // The propulsion motor driver has two input pins IN1 and IN2 that must be
 // wired to PWM pins on the microcontroller.
-#define PROPULSION_PIN_1 13 // IN1
-#define PROPULSION_PIN_2 12 // IN2
+#define PROPULSION_PIN_1 32 // IN1
+#define PROPULSION_PIN_2 33 // IN2
 
 // Pin to wire the Servo used for steering to
 #define STEERING_SERVO_PIN 15
