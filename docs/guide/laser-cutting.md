@@ -1,6 +1,7 @@
 <script setup>
     import StlViewer from "../.vitepress/theme/components/StlViewer.vue";
     import BicyclePartsToLaserCutTable from "../.vitepress/theme/components/BicyclePartsToLaserCutTable.vue";
+    import StandPartsToLaserCutTable from "../.vitepress/theme/components/StandPartsToLaserCutTable.vue";
 </script>
 
 # Laser-Cut Parts
@@ -30,8 +31,16 @@ MDF parts to be laser-cut for the bicycle itself form the rigid frame of the bic
 
 ## Stand Parts
 
-::: tip TODO
-Export the parts of the stand as well, put links for those and previews as well.
+We designed a stand to put the bike on when it is not balancing. Those are the parts needed to manufacture it.
+
+::: details Preview of the stand with the bike on
+<StlViewer stlUrl="/assets/stl/stand-with-bicycle.stl" meshColor="#a16207" />
 :::
+
+::: details Preview of the stand without the bike
+<StlViewer stlUrl="/assets/stl/stand-without-bicycle.stl" meshColor="#a16207" />
+:::
+
+<StandPartsToLaserCutTable />
 
 Once you have 3D-printed necessary parts and laser-cut others, you still need to manufacture a central piece of the bicycle: the metal shaft for the flywheel. This is the subject of the next section.
