@@ -23,7 +23,10 @@
 float angle = INITIAL_KALMAN_ANGLE;
 float uncertainty = INITIAL_KALMAN_UNCERTAINTY;
 unsigned long lastAngleUpdateTime = 0;
-unsigned long currentTime = 0;
+float lastAngle = INITIAL_KALMAN_ANGLE;
+float angleChangeThreshold = 0.005;
+unsigned long lastBigChangeTime = 0;
+float boost = 0.1;
 
 unsigned long lastLoopTime = 0;
 unsigned long currentLoopTime = 0;
@@ -51,6 +54,9 @@ float angleCorrection = -0.01;
 
 // margin of error for the angle to be considered vertical
 float angleMargin = 0.00;
+
+// lower bound for PID output 
+float absoluteOutputLower = 0.0;
 
 // PID constants
 float Kp = 1.5;
@@ -87,10 +93,10 @@ void switchMode()
     Serial.println("Resetting state variables...");
     angle = INITIAL_KALMAN_ANGLE;
     uncertainty = INITIAL_KALMAN_UNCERTAINTY;
-    lastAngleUpdateTime = 0;
-    currentTime = 0;
-    lastLoopTime = 0;
-    currentLoopTime = 0;
+    float time = micros();
+    lastAngleUpdateTime = time;
+    lastLoopTime = time;
+    currentLoopTime = time;
     total_error = 0.0;
     Serial.println("State variables reset.");
     Serial.println("Entering balancing mode.");
@@ -158,7 +164,14 @@ void loop()
   }
 
   handleRemoteControlEvents();
+  lastAngle = angle;
   updateGyroAngle();
+  if(abs(angle - lastAngle) > angleChangeThreshold){
+    Serial.print("INTERVAL BETWEEN CHANGES: ");
+    Serial.println(micros() - lastBigChangeTime);
+    lastBigChangeTime = micros();
+
+  }
 
   // Run one iteration at a time instead of blocking in configuration or balancing mode.
   // This allows RemoteXY to handle bluetooth inputs under the hood, between two loops.
@@ -397,6 +410,24 @@ void configurationMode()
     {
       angleMargin = command.substring(command.indexOf(' ') + 1).toFloat();
     }
+    else if (command.startsWith("min_bound "))
+    {
+      absoluteOutputLower = command.substring(command.indexOf(' ') + 1).toFloat();
+      Serial.print("New value for lower bound: ");
+      Serial.println(absoluteOutputLower);
+    }
+    else if (command.startsWith("angle_diff "))
+    {
+      angleChangeThreshold = command.substring(command.indexOf(' ') + 1).toFloat();
+      Serial.print("New value for angle diff: ");
+      Serial.println(angleChangeThreshold);
+    }
+    else if (command.startsWith("boost "))
+    {
+      boost = command.substring(command.indexOf(' ') + 1).toFloat();
+      Serial.print("New value for boost: ");
+      Serial.println(boost);
+    }
     else
     {
       Serial.print("Unknown command: '");
@@ -446,6 +477,16 @@ void balancingMode()
   if (controllerMode == "PID")
   {
     input = pidBalancingImplementation(currentLoopTime - lastLoopTime, angle);
+  }
+
+  if (currentLoopTime - lastBigChangeTime > 500000.0f){
+    Serial.println("BOOSTING");
+    if(angle - angleCorrection < 0){
+      input -= boost;
+    }
+    else{
+      input += boost;
+    }
   }
 
   // monitoring purposes
@@ -530,7 +571,18 @@ float pidBalancingImplementation(unsigned long elapsedTime, float angle)
   previous_error = error;
 
   // Calculate the input to the flywheel motor
-  return Kp * error + Ki * total_error + Kd * derivative;
+  float input = Kp * error + Ki * total_error + Kd * derivative;
+
+  if(input > 0 && input < absoluteOutputLower){
+    return absoluteOutputLower;
+  }
+  else if(input < 0 && input > -absoluteOutputLower){
+    return -absoluteOutputLower;
+  }
+  else{
+    return input;
+  }
+  
 }
 
 // calculates tilt angle from sensor readings
