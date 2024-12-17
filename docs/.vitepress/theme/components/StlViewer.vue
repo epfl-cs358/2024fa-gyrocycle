@@ -5,7 +5,7 @@
 <script>
 import * as THREE from "three";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { TrackballControls } from "three/examples/jsm/controls/TrackballControls.js";
 
 export default {
   name: "StlViewer",
@@ -14,6 +14,18 @@ export default {
       type: String,
       required: true,
     },
+    meshColor: {
+      type: String,
+      default: "#0077be"
+    },
+    backgroundColor: {
+      type: String,
+      default: "#000000"
+    },
+    backgroundOpacity: {
+      type: Number,
+      default: 0
+    }
   },
   mounted() {
     this.initThreeJS();
@@ -36,6 +48,7 @@ export default {
         this.$refs.viewer.clientHeight
       );
       this.$refs.viewer.appendChild(renderer.domElement);
+      renderer.setClearColor(this.backgroundColor, this.backgroundOpacity); // Background color and opacity
 
       // Add a Hemisphere Light for overall brightness
       const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.5); // Sky color, ground color, intensity
@@ -54,16 +67,22 @@ export default {
 
 
       // OrbitControls for Interaction
-      const controls = new OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true; // Smooth rotation
-      controls.dampingFactor = 0.05;
+      const controls = new TrackballControls(camera, renderer.domElement);
+      controls.rotateSpeed = 5.0; // Adjust rotation speed
+      controls.zoomSpeed = 1.2;   // Zoom sensitivity
+      controls.panSpeed = 0.8;    // Panning speed
+
+      controls.noZoom = false;    // Allow zooming
+      controls.noPan = false;     // Allow panning
+      controls.staticMoving = false; // Smooth rotations
+      controls.dynamicDampingFactor = 0.2; // Damping factor for smooth motion
 
       // Load STL File
       const loader = new STLLoader();
       loader.load(
         this.stlUrl,
         (geometry) => {
-          const material = new THREE.MeshStandardMaterial({ color: 0x0077be });
+          const material = new THREE.MeshStandardMaterial({ color: this.meshColor });
           const mesh = new THREE.Mesh(geometry, material);
           scene.add(mesh);
         
@@ -73,20 +92,17 @@ export default {
           geometry.boundingBox.getCenter(center).negate();
           geometry.translate(center.x, center.y, center.z);
         
+          // Fix orientation (rotate from Z-up to Y-up)
+          mesh.rotation.set(-Math.PI / 2, 0, 0); // Rotate 90 degrees around X-axis
+
           // Adjust controls target to the object center
           controls.target.set(0, 0, 0);  // Set target to the center of the model
-          controls.update();  // Update the controls after modifying the target
         
           // Optionally, adjust camera position based on model size
           const size = geometry.boundingBox.getSize(new THREE.Vector3());
           const maxDimension = Math.max(size.x, size.y, size.z);
           const cameraDistance = maxDimension * 0.4;
           camera.position.set(cameraDistance, cameraDistance, cameraDistance); // Position the camera based on size
-        
-          // Rotate the mesh so it is displayed horizontally, vertically, or diagonally
-          mesh.rotation.x = Math.PI / 2; // Example: Rotate 90 degrees along the X axis (horizontal)
-          // mesh.rotation.y = Math.PI / 2; // Example: Rotate 90 degrees along the Y axis (vertical)
-          // mesh.rotation.z = Math.PI / 2; // Example: Rotate 90 degrees along the Z axis (diagonal)
         
           // Start Rendering
           const animate = () => {
