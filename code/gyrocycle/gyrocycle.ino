@@ -17,6 +17,10 @@
 
 #define MINIMUM_VOLTAGE 11.3f // Volts
 
+#define LEFT_STEERING_ANGLE 70
+#define RIGHT_STEERING_ANGLE 110
+#define DEFAULT_STEERING_ANGLE 90
+
 // Angle and uncertainty at each step
 float angle = INITIAL_KALMAN_ANGLE;
 float uncertainty = INITIAL_KALMAN_UNCERTAINTY;
@@ -443,9 +447,15 @@ void balancingMode()
   float input = 0;
   if (controllerMode == "PID")
   {
-    float speed = getFlywheelMotorSpeed();
-    float setpoint = 0 - (speed / getOdriveConfigMaxSpeed() * 0.04);
-    input = pidBalancingImplementation(currentLoopTime - lastLoopTime, angle, setpoint);
+    input = pidBalancingImplementation(currentLoopTime - lastLoopTime, angle, 0);
+  }
+
+  if(input < 0) {
+    requestSteeringAngle(LEFT_STEERING_ANGLE);
+  } else if (input > 0) {
+    requestSteeringAngle(RIGHT_STEERING_ANGLE);
+  } else {
+    requestSteeringAngle(DEFAULT_STEERING_ANGLE);
   }
 
   // monitoring purposes
@@ -519,7 +529,6 @@ float pidBalancingImplementation(unsigned long elapsedTime, float angle, float s
     error = 0;
     return 0;
   }
-  Serial.println(error);
   // if (angle < 0) error = -error;
 
   // Accumulate the error for the integral (I) term
@@ -531,8 +540,6 @@ float pidBalancingImplementation(unsigned long elapsedTime, float angle, float s
 
   // Update the previous error
   previous_error = error;
-
-  unsigned long time = millis();
 
   // Calculate the input to the flywheel motor
   return Kp * error + Ki * total_error + Kd * derivative;

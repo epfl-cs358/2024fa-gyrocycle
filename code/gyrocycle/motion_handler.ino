@@ -62,6 +62,7 @@ const unsigned long motionUpdateInterval = 50;
 Servo steeringServo;
 
 int steeringAngle = 90;
+int requestedSteeringAngle = 90;
 
 void initMotion() {
   RemoteXY_Init();
@@ -96,7 +97,14 @@ void handleRemoteControlEvents() {
   bool motorDirection = RemoteXY.speedSlider >= 0;
 
   // Map the steering slider value (-100 to 100) to servo angle (0 to 180)
-  steeringAngle = map(RemoteXY.steeringSlider, 100, -100, 90 + MAX_STEERING_ANGLE, 90 - MAX_STEERING_ANGLE);
+  int remoteXYSteeringAngle = map(RemoteXY.steeringSlider, 100, -100, 90 + MAX_STEERING_ANGLE, 90 - MAX_STEERING_ANGLE);
+  if(remoteXYSteeringAngle > requestedSteeringAngle && remoteXYSteeringAngle > 0) {
+    steeringAngle = remoteXYSteeringAngle;
+  } else if(remoteXYSteeringAngle < 0 && remoteXYSteeringAngle < requestedSteeringAngle) {
+    steeringAngle = remoteXYSteeringAngle;
+  } else {
+    steeringAngle = requestedSteeringAngle;
+  }
 
   // Update the Servo angle for steering
   steeringServo.write(steeringAngle);
@@ -169,5 +177,9 @@ bool isRemoteXYConnected() {
 }
 
 int getSteeringAngle() {
-  
+  return steeringAngle;
+}
+
+int requestSteeringAngle(int requestedAngle) {
+  requestedSteeringAngle = requestedAngle;
 }
