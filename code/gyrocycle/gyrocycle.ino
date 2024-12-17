@@ -17,7 +17,15 @@
 
 #define ANGLE_MARGIN 0.01f
 
+<<<<<<< Updated upstream
 #define MINIMUM_VOLTAGE 11.3f // Volts
+=======
+#define LEFT_STEERING_ANGLE 86
+#define RIGHT_STEERING_ANGLE 94
+#define DEFAULT_STEERING_ANGLE 90
+>>>>>>> Stashed changes
+
+#define MAX_TOTAL_ERROR 1
 
 // Angle and uncertainty at each step
 float angle = INITIAL_KALMAN_ANGLE;
@@ -445,7 +453,19 @@ void balancingMode()
   float input = 0;
   if (controllerMode == "PID")
   {
+<<<<<<< Updated upstream
     input = pidBalancingImplementation(currentLoopTime - lastLoopTime, angle);
+=======
+    input = pidBalancingImplementation(currentLoopTime - lastLoopTime, angle, 0);
+  }
+
+  if(input < -0.03) {
+    requestSteeringAngle(LEFT_STEERING_ANGLE);
+  } else if (input > 0.03) {
+    requestSteeringAngle(RIGHT_STEERING_ANGLE);
+  } else {
+    requestSteeringAngle(DEFAULT_STEERING_ANGLE);
+>>>>>>> Stashed changes
   }
 
   // monitoring purposes
@@ -522,6 +542,11 @@ float pidBalancingImplementation(unsigned long elapsedTime, float angle)
   // Accumulate the error for the integral (I) term
   // TODO : Should we clamp the value of total_error?
   total_error += error * elapsedTime / 1000000.0;
+  if(total_error > MAX_TOTAL_ERROR) {
+    total_error = MAX_TOTAL_ERROR;
+  } else if(total_error < -MAX_TOTAL_ERROR) {
+    total_error = -MAX_TOTAL_ERROR;
+  }
 
   // Calculate the derivative (D) term
   float derivative = (error - previous_error) / (elapsedTime / 1000000.0);
