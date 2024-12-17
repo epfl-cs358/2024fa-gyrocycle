@@ -158,7 +158,7 @@
   }
 
   export default {
-    name: "StlTable",
+    name: "ComponentsToPrintTable",
     components: {
       StlViewer,
     },
