@@ -15,8 +15,6 @@
 #define NUMBER_OF_MEASURE_FOR_MPU_CALIBRATION 500
 #define MOVING_AVERAGE_SIZE 100
 
-#define ANGLE_MARGIN 0.01f
-
 #define MINIMUM_VOLTAGE 11.3f // Volts
 
 // Angle and uncertainty at each step
@@ -445,7 +443,9 @@ void balancingMode()
   float input = 0;
   if (controllerMode == "PID")
   {
-    input = pidBalancingImplementation(currentLoopTime - lastLoopTime, angle);
+    float speed = getFlywheelMotorSpeed();
+    float setpoint = 0 - (speed / getOdriveConfigMaxSpeed() * 0.04);
+    input = pidBalancingImplementation(currentLoopTime - lastLoopTime, angle, setpoint);
   }
 
   // monitoring purposes
@@ -506,17 +506,20 @@ float ogBalancingImplementation(float gyroX, float angle)
  *
  * @param elapsedTime The time elapsed since the last iteration of the PID controller.
  * @param angle The angle from the vertical, calculated with the accelerometer.
+ * @param setpoint The setpoint we want to go to
  *
  * @return float The torque that should be applied to the flywheel motor.
  */
-float pidBalancingImplementation(unsigned long elapsedTime, float angle)
+float pidBalancingImplementation(unsigned long elapsedTime, float angle, float setpoint)
 {
   // The error of this controller is the angle from the vertical
-  float error = angle - angleCorrection;
+  float error = angle - angleCorrection - setpoint;
   if (-angleMargin < error && error < angleMargin)
   {
     error = 0;
+    return 0;
   }
+  Serial.println(error);
   // if (angle < 0) error = -error;
 
   // Accumulate the error for the integral (I) term
@@ -528,6 +531,8 @@ float pidBalancingImplementation(unsigned long elapsedTime, float angle)
 
   // Update the previous error
   previous_error = error;
+
+  unsigned long time = millis();
 
   // Calculate the input to the flywheel motor
   return Kp * error + Ki * total_error + Kd * derivative;
