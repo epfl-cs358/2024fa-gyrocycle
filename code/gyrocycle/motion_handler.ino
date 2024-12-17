@@ -98,9 +98,9 @@ void handleRemoteControlEvents() {
 
   // Map the steering slider value (-100 to 100) to servo angle (0 to 180)
   int remoteXYSteeringAngle = map(RemoteXY.steeringSlider, 100, -100, 90 + MAX_STEERING_ANGLE, 90 - MAX_STEERING_ANGLE);
-  if(remoteXYSteeringAngle > requestedSteeringAngle && remoteXYSteeringAngle > 0) {
+  if(remoteXYSteeringAngle > requestedSteeringAngle && remoteXYSteeringAngle > 90) {
     steeringAngle = remoteXYSteeringAngle;
-  } else if(remoteXYSteeringAngle < 0 && remoteXYSteeringAngle < requestedSteeringAngle) {
+  } else if(remoteXYSteeringAngle < 90 && remoteXYSteeringAngle < requestedSteeringAngle) {
     steeringAngle = remoteXYSteeringAngle;
   } else {
     steeringAngle = requestedSteeringAngle;
@@ -180,6 +180,6 @@ int getSteeringAngle() {
   return steeringAngle;
 }
 
-int requestSteeringAngle(int requestedAngle) {
+void requestSteeringAngle(int requestedAngle) {
   requestedSteeringAngle = requestedAngle;
 }

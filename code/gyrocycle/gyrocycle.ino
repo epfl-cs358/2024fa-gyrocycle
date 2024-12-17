@@ -17,8 +17,8 @@
 
 #define MINIMUM_VOLTAGE 11.3f // Volts
 
-#define LEFT_STEERING_ANGLE 70
-#define RIGHT_STEERING_ANGLE 110
+#define LEFT_STEERING_ANGLE 80
+#define RIGHT_STEERING_ANGLE 100
 #define DEFAULT_STEERING_ANGLE 90
 
 // Angle and uncertainty at each step
@@ -438,6 +438,7 @@ void balancingMode()
   {
     Serial.readStringUntil('\n');
     switchMode();
+    requestSteeringAngle(DEFAULT_STEERING_ANGLE);
     return;
   }
 
