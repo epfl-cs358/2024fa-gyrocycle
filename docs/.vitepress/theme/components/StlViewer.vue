@@ -25,6 +25,10 @@ export default {
     backgroundOpacity: {
       type: Number,
       default: 0
+    },
+    initialZoom: {
+      type: Number,
+      default: 0.6 // Default zoom level (1.0 means no additional zoom applied)
     }
   },
   mounted() {
@@ -101,7 +105,7 @@ export default {
           // Optionally, adjust camera position based on model size
           const size = geometry.boundingBox.getSize(new THREE.Vector3());
           const maxDimension = Math.max(size.x, size.y, size.z);
-          const cameraDistance = maxDimension * 0.4;
+          const cameraDistance = maxDimension * this.initialZoom;
           camera.position.set(cameraDistance, cameraDistance, cameraDistance); // Position the camera based on size
         
           // Start Rendering

@@ -11,6 +11,9 @@ export default defineConfig({
     math: true
   },
   cleanUrls: true,
+  vite: {
+    assetsInclude: ['**/*.stl']
+  },
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
@@ -45,6 +48,7 @@ export default defineConfig({
           {
             text: 'Manufacturing',
             items: [
+              { text: 'Meet our CAD', link: '/guide/meet-our-cad' },
               { text: 'Soldering', link: '/guide/soldering' },
               { text: '3D-Printed Parts', link: '/guide/3d-parts' },
               { text: 'Laser-Cut Parts', link: '/guide/laser-cutting' },

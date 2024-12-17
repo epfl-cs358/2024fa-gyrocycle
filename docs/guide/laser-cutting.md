@@ -6,6 +6,15 @@ The bike's rigid frame is made out of MDF `5mm`. You will need a laser cutter to
 Files for laser-cutting MDF parts are provided. Note however that some of the screw holes were not added to the CAD. Hence, you might have to drill additional screw holes yourself if they are not already laser-cut.
 :::
 
+::: tip TODO
+Add a warning to add a hole or something to see the bottom pulley of the flywheel instead of having to unmount everything.
+:::
+
+Following is the list of parts to be laser-cut in an MDF plate, divided into two parts:
+
+1. Parts for the bicycle itself
+2. Parts for the bicycle's stand
+
 Here is the list of parts to be laser-cut in an MDF plate:
 
 ::: tip TODO

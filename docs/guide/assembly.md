@@ -10,4 +10,8 @@ Describe the steps to take to assemble the bicycle into its final form.
 Make sure to tell the reader to keep the ODrive's micro-USB port accessible, as the next step will include configuring the ODrive with `odrivetool`.
 :::
 
+::: tip TODO
+Document how we put tape on some shafts to avoid them being loose
+:::
+
 Your bike is now assembled, congratulations! To make it work properly, there's one more step you need to take, and that would be the software setup.
