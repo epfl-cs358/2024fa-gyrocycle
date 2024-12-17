@@ -12,7 +12,7 @@ You will need to solder five **female connectors** to the MPU6050 sensor. A leng
 - `SDA`
 - `INT`
 
-<img src="/assets/images/mpu-6050.png" width="100" />
+<img src="/images/mpu-6050.png" width="100" />
 
 ## Soldering the LIPO protection circuit
 

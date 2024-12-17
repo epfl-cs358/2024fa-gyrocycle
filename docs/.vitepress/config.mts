@@ -5,7 +5,7 @@ export default defineConfig({
   title: "GyroCycle",
   description: "Self-balancing bicycle.",
   head: [
-    [ 'link', { rel: 'icon', href: '/assets/images/logo-light.svg' } ]
+    [ 'link', { rel: 'icon', href: '/images/logo-light.svg' } ]
   ],
   markdown: {
     math: true
@@ -32,8 +32,8 @@ export default defineConfig({
     },
 
     logo: {
-      light: '/assets/images/logo-light.svg',
-      dark: '/assets/images/logo-dark.svg',
+      light: '/images/logo-light.svg',
+      dark: '/images/logo-dark.svg',
       alt: 'GyroCycle'
     },
 

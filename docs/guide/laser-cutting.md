@@ -24,7 +24,7 @@ Following is the list of parts to be laser-cut in an MDF plate, divided into two
 MDF parts to be laser-cut for the bicycle itself form the rigid frame of the bicycle.
 
 ::: details Preview of the rigid frame
-<StlViewer stlUrl="/assets/stl/bicycle-mdf-frame.stl" meshColor="#a16207" />
+<StlViewer stlUrl="/stl/bicycle-mdf-frame.stl" meshColor="#a16207" />
 :::
 
 <BicyclePartsToLaserCutTable />
@@ -34,11 +34,11 @@ MDF parts to be laser-cut for the bicycle itself form the rigid frame of the bic
 We designed a stand to put the bike on when it is not balancing. Those are the parts needed to manufacture it.
 
 ::: details Preview of the stand with the bike on
-<StlViewer stlUrl="/assets/stl/stand-with-bicycle.stl" meshColor="#a16207" />
+<StlViewer stlUrl="/stl/stand-with-bicycle.stl" meshColor="#a16207" />
 :::
 
 ::: details Preview of the stand without the bike
-<StlViewer stlUrl="/assets/stl/stand-without-bicycle.stl" meshColor="#a16207" />
+<StlViewer stlUrl="/stl/stand-without-bicycle.stl" meshColor="#a16207" />
 :::
 
 <StandPartsToLaserCutTable />

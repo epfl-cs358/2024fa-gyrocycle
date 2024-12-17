@@ -8,10 +8,10 @@ The bicycle was designed using the student trial of Fusion360. We provide both t
 
 ## Bicycle
 
-You can download the complete bike CAD as a `.step` file from <a href="/assets/step/complete-bicycle.step" download>this link</a>.
+You can download the complete bike CAD as a `.step` file from <a href="/step/complete-bicycle.step" download>this link</a>.
 
 ::: details Complete CAD Preview
-<StlViewer stlUrl="/assets/stl/complete-bicycle.stl" />
+<StlViewer stlUrl="/stl/complete-bicycle.stl" />
 :::
 
 There are two things we want to point out about this CAD.
@@ -28,10 +28,10 @@ There are two things we want to point out about this CAD.
 
 ## Stand
 
-We designed a stand to put the bike on when it is not balancing. You can download its CAD as a `.step` file from <a href="/assets/step/stand-without-bicycle.step" download>this link</a>.
+We designed a stand to put the bike on when it is not balancing. You can download its CAD as a `.step` file from <a href="/step/stand-without-bicycle.step" download>this link</a>.
 
 ::: details Stand CAD Preview
-<StlViewer stlUrl="/assets/stl/stand-without-bicycle.stl" meshColor="#a16207" />
+<StlViewer stlUrl="/stl/stand-without-bicycle.stl" meshColor="#a16207" />
 :::
 
 Note that we added some text at the time of laser-cutting the MDF, to write the name of the project on the stand along with the QR code required to connect to RemoteXY (see the part about software).

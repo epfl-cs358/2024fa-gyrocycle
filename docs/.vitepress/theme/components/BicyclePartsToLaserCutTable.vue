@@ -71,18 +71,18 @@
       },
       created() {
         // Dynamically fetch all STL files from the public/stl folder
-        // /assets/stl/to-be-printed/*.stl
-        const files = import.meta.glob("/assets/stl/to-be-laser-cut/bicycle/*.stl", { eager: true });
+        const files = import.meta.glob("/public/stl/to-be-laser-cut/bicycle/*.stl", { eager: true });
         console.log(`${Object.keys(files).length} files loaded`);
     
         // Process the files into a usable format
         this.stlFiles = Object.keys(files).map((filePath) => {
           let filename = filePath.split("/").pop()
+          let productionPath = filePath.replace("/public", "");
           return {
             name: filename, // Extract file name
-            url: filePath, // Generate accessible URL
+            url: productionPath, // Generate accessible URL
             dxfName: filename.replace("/stl/to-be-laser-cut/bicycle/", "/dxf/").replace(".stl", ".dxf"),
-            dxf: filePath.replace("/stl/to-be-laser-cut/bicycle/", "/dxf/").replace(".stl", ".dxf"),
+            dxf: productionPath.replace("/stl/to-be-laser-cut/bicycle/", "/dxf/").replace(".stl", ".dxf"),
             ...additionalProperties[filename]
           };
         });

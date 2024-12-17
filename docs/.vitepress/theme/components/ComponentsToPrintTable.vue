@@ -179,14 +179,16 @@
     },
     created() {
       // Dynamically fetch all STL files from the public/stl folder
-      const files = import.meta.glob("/assets/stl/to-be-printed/*.stl", { eager: true });
+      const files = import.meta.glob("/public/stl/to-be-printed/*.stl", { eager: true });
+      console.log(files);
   
       // Process the files into a usable format
       this.stlFiles = Object.keys(files).map((filePath) => {
-        let filename = filePath.split("/").pop()
+        let productionPath = filePath.replace("/public", "");
+        let filename = productionPath.split("/").pop()
         return {
           name: filename, // Extract file name
-          url: filePath, // Generate accessible URL
+          url: productionPath, // Generate accessible URL
           ...additionalProperties[filename]
         };
       });

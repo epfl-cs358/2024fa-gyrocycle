@@ -169,7 +169,7 @@ You can use your mobile phone as a basic remote controller for the bicycle. You'
 
 Once you installed the app, make sure your bicycle is on, open the app and scan the following QR code:
 
-<img src="/assets/images/remotexy-qr.svg" width="300" />
+<img src="/images/remotexy-qr.svg" width="300" />
 
 It will tell your app all it needs to know to communicate with the ESP32.
 

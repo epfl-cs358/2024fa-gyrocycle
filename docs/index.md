@@ -10,7 +10,7 @@ GyroCycle is a course project worked on as part of the [CS-358 course at EPFL](h
 
 This is the end product:
 
-![`A bicycle image should be displayed here`](assets/images/bicycle.jpg)
+![`A bicycle image should be displayed here`](/images/bicycle.jpg)
 
 This documentation is a work in progress.
 
