@@ -325,3 +325,15 @@ void printlnFilterBandwidth()
     break;
   }
 }
+
+
+void automaticCalibrationGyroX(){
+  float sum = 0;
+  for (int i = 0; i < NUMBER_OF_MEASURE_FOR_MPU_CALIBRATION; i++)
+  {
+    float gyroXcalib;
+    mpuMeasure(nullptr, nullptr, &gyroXcalib);
+    sum += gyroXcalib;
+  }
+ gyroXoffset = sum / NUMBER_OF_MEASURE_FOR_MPU_CALIBRATION;
+}

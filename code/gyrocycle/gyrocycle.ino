@@ -92,7 +92,8 @@ void switchMode()
   {
     Serial.println("Preparing for balancing mode...");
     Serial.println("Resetting state variables...");
-    calibrateInitialAngle(void);
+    automaticCalibrationGyroX();
+    calibrateInitialAngle();
     uncertainty = INITIAL_KALMAN_UNCERTAINTY;
     float time = micros();
     lastAngleUpdateTime = time;
@@ -104,6 +105,7 @@ void switchMode()
     Serial.println("Entering balancing mode.");
   }
 }
+
 
 void calibrateInitialAngle(void)
 {
