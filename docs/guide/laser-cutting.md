@@ -19,6 +19,10 @@ Following is the list of parts to be laser-cut in an MDF plate, divided into two
 1. Parts for the bicycle itself.
 2. Parts for the bicycle's stand. Those are not necessary if you only want to build the bike.
 
+::: tip
+You can download all of the `.dxf` files as a single `.zip` with <a href="/zip/gyrocycle-parts-to-laser-cut.zip" download>this link</a>.
+:::
+
 ## Bicycle Parts
 
 MDF parts to be laser-cut for the bicycle itself form the rigid frame of the bicycle.
