@@ -10,4 +10,4 @@ Below is a list of `.stl` files to be 3D-printed, along with how many of each mu
 
 <ComponentsToPrintTable />
 
-Once all 3D parts have been printed, other parts should be laser-cut in MDF, which is detailed in the next section.
+Once all 3D parts have been printed, the power supply circuitry of the bicycle needs to be soldered together, which is detailed in the next section.

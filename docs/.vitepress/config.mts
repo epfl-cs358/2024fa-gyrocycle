@@ -49,8 +49,8 @@ export default defineConfig({
             text: 'Manufacturing',
             items: [
               { text: 'Meet our CAD', link: '/guide/meet-our-cad' },
-              { text: 'Soldering', link: '/guide/soldering' },
               { text: '3D-Printed Parts', link: '/guide/3d-parts' },
+              { text: 'Soldering', link: '/guide/soldering' },
               { text: 'Laser-Cut Parts', link: '/guide/laser-cutting' },
               { text: 'Manufacturing the Flywheel Shaft', link: '/guide/manufacturing-shaft.md'}
             ]

@@ -36,8 +36,6 @@ We designed a stand to put the bike on when it is not balancing. You can downloa
 
 Note that we added some text at the time of laser-cutting the MDF, to write the name of the project on the stand along with the QR code required to connect to RemoteXY (see the part about software).
 
-::: tip TODO
-Add a picture of the actual bicycle stand we manufactured.
-:::
+<img src="/images/stand.jpg" />
 
 Now that those have been pointed out, let's get into the manufacturing, starting with some soldering.
