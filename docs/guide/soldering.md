@@ -33,6 +33,14 @@ A part of the schema is dedicated to the On-Off switch of the circuit. We recomm
 Make sure to use thick enough cables for the powered supplied from the battery and from the LIPO protection board.
 :::
 
+Make sure to also check the 3D printed pieces (next page of the guide) for the LIPO protection board. After soldering, printing and assembling, you should obtain something similar to the following:
+
+<img src="/images/lipo-protection-circuit.png" alt="Final result of the LIPO protection box" width="300" />
+
+Plan the length of your cables accordingly.
+
+Here is the diagram to help you with soldering:
+
 ![Soldering schema for the LIPO protection board](/images/lipo-protection-circuit-soldering-schema.svg)
 
 Once all soldering has been done, we can move on to laser-cutting some parts.
