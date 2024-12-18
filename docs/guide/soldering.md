@@ -7,7 +7,7 @@ Diagrams are provided below for easier reference, but you can also directly look
 | Description | Download link |
 |-|-|
 | Electrical Schema (`.pdf`) | <a href="/pdf/electrical-schema.pdf" download>Download</a> |
-| Electrical Schema (`.kicad_sch`) | <a href="/sch/electrical-schema.kicad_sdh" download>Download</a> |
+| Electrical Schema (`.zip` Kicad project) | <a href="/zip/electrical-schema.zip" download>Download</a> |
 
 ## Soldering to the MPU6050
 

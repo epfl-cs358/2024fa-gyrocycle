@@ -45,6 +45,6 @@ You'll find in the table thereafter links to download the electrical schema of G
 | Description | Download link |
 |-|-|
 | Electrical Schema (`.pdf`) | <a href="/pdf/electrical-schema.pdf" download>Download</a> |
-| Electrical Schema (`.kicad_sch`) | <a href="/sch/electrical-schema.kicad_sdh" download>Download</a> |
+| Electrical Schema (`.zip` Kicad project) | <a href="/zip/electrical-schema.zip" download>Download</a> |
 
 Now that those have been pointed out, let's get into the manufacturing, starting with some soldering.

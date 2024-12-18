@@ -9,7 +9,7 @@ Refer to our CAD, our blueprints and our electrical schema to assemble and wire 
 | CAD `.step` file | <a href="/step/complete-bicycle.step" download>Download</a> |
 | Bicycle blueprints (`.pdf`) | <a href="/pdf/bicycle-blueprints.pdf" download>Download</a> |
 | Electrical Schema (`.pdf`) | <a href="/pdf/electrical-schema.pdf" download>Download</a> |
-| Electrical Schema (`.kicad_sch`) | <a href="/sch/electrical-schema.kicad_sdh" download>Download</a> |
+| Electrical Schema (`.zip` Kicad project) | <a href="/zip/electrical-schema.zip" download>Download</a> |
 
 Just a few notice before you start:
 
