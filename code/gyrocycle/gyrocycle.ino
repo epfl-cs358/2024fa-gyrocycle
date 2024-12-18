@@ -5,9 +5,8 @@
 #include "one_euro.h"
 
 #define GEAR_RATIO 0.5
-#define INITIAL_KALMAN_ANGLE -0.1
 // 0.06981 corresponds to 4 deg of uncertainty on the first step 0.349066 corresponds to 20 deg (we don't know if we start right or left)
-#define INITIAL_KALMAN_UNCERTAINTY 0.349066
+#define INITIAL_KALMAN_UNCERTAINTY 0.06981
 #define TORQUE_FOR_CONSTANT_SPEED 0.018
 
 // This defines how much the angle is influenced by the accelerometer and the gyroscope
@@ -26,7 +25,7 @@
 #define MAX_TOTAL_ERROR 1
 
 // Angle and uncertainty at each step
-float angle = INITIAL_KALMAN_ANGLE;
+float angle = 0;
 float uncertainty = INITIAL_KALMAN_UNCERTAINTY;
 unsigned long lastAngleUpdateTime = 0;
 unsigned long currentTime = 0;
@@ -93,7 +92,7 @@ void switchMode()
   {
     Serial.println("Preparing for balancing mode...");
     Serial.println("Resetting state variables...");
-    angle = INITIAL_KALMAN_ANGLE;
+    calibrateInitialAngle(void);
     uncertainty = INITIAL_KALMAN_UNCERTAINTY;
     float time = micros();
     lastAngleUpdateTime = time;
@@ -587,7 +586,7 @@ void angleCalculatorKalman(float accelY, float accelZ, float gyroX)
   unsigned long currentTime = micros();
 
   float acc_angle = atan(accelY / accelZ);                                            // angle calculated with accelerometer readings
-  float gyro_angle = angle + (currentTime - lastAngleUpdateTime) / 1000000.0 * gyroX; // angle integrated from gyroscope readings
+  float gyro_angle = angle + ((currentTime - lastAngleUpdateTime) / 1000000.0) * gyroX; // angle integrated from gyroscope readings
 
   float uncertainty = uncertainty + ((currentTime - lastAngleUpdateTime) / 1000000.0) * ((currentTime - lastAngleUpdateTime) / 1000000.0) * 0.00487; // 0,00487 is the assumed variance on the rotation rate (std deviation of 4 deg/s)
   // calculate kalman gain
