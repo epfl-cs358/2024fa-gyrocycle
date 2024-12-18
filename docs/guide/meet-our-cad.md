@@ -38,4 +38,13 @@ Note that we added some text at the time of laser-cutting the MDF, to write the 
 
 <img src="/images/stand.jpg" />
 
+## Electrical Schema
+
+You'll find in the table thereafter links to download the electrical schema of GyroCycle, both in PDF format or for Kicad.
+
+| Description | Download link |
+|-|-|
+| Electrical Schema (`.pdf`) | <a href="/pdf/electrical-schema.pdf" download>Download</a> |
+| Electrical Schema (`.kicad_sch`) | <a href="/sch/electrical-schema.kicad_sdh" download>Download</a> |
+
 Now that those have been pointed out, let's get into the manufacturing, starting with some soldering.

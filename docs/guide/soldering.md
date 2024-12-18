@@ -2,9 +2,12 @@
 
 GyroCycle requires you to solder a few wires together to properly work. Below is a description of what cables need to be soldered where.
 
-::: tip TODO
-Add a reference to the electrical schema once it is ready.
-:::
+Diagrams are provided below for easier reference, but you can also directly look at the electrical schema. Be warned though, not all connections on the electrical schema need to be soldered.
+
+| Description | Download link |
+|-|-|
+| Electrical Schema (`.pdf`) | <a href="/pdf/electrical-schema.pdf" download>Download</a> |
+| Electrical Schema (`.kicad_sch`) | <a href="/sch/electrical-schema.kicad_sdh" download>Download</a> |
 
 ## Soldering to the MPU6050
 
