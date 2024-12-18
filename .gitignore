@@ -5,3 +5,13 @@ docs/node_modules/
 
 docs/.vitepress/cache/
 docs/.vitepress/dist/
+
+# Ignore Kicad lock files
+electrical-schema/*.lck
+# Ignore Kicad cache and backups
+electrical-schema/fp-info-cache
+electrical-schema/fp-lib-table
+electrical-schema/sym-lib-table
+electrical-schema/kicad-backups
+# Ignore PRL files from Kicad
+electrical-schema/*.kicad_prl
