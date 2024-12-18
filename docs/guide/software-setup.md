@@ -119,15 +119,29 @@ Now that you successfully installed `odrivetool`, you can use it to configure yo
 
 ### ODrive Configuration
 
-::: tip TODO
-Document our configuration for the ODrive.
+We provide a Python script that you can run once `odrivetool` is installed and set up.
+
+Clone the repository or download the configuration file and run it as a Python script. Wait for it to succeed.
+
+```
+git clone https://github.com/epfl-cs358/2024fa-gyrocycle.git gyrocycle
+cd gyrocycle/code
+python3 odrv_config.py
+```
+
+::: info
+You might see some error messages when the ODrive is asked to reboot. This is expected, and you should see right below:
+
+```
+Reboot command failed - this is normal
+```
 :::
 
 ## Upload the code to the ESP32
 
 You have everything set up and wired, it is now time to put software on this bicycle.
 
-1. Clone the GitHub repository to get the code
+1. If not already done, clone the GitHub repository to get the code
 
     ```
     git clone https://github.com/epfl-cs358/2024fa-gyrocycle.git gyrocycle
@@ -159,8 +173,36 @@ Once the upload is successful (no errors displayed in red in Arduino IDE's conso
 
 It is finally time to turn this bad boy on!
 
+1. Start the bicycle with the On-Off switch
+
+1. Plug your laptop to the ESP32 (don't forget the USB isolator)
+
+Once plugged and started, you should see some data coming via serial.
+
+```
+MPU6050 found.
+Configuring the sensor...
+Sensor configured.
+Accelerometer range set to: +-2G
+Gyro range set to: +- 250 deg/s
+Filter bandwidth set to: 260 Hz
+[...]
+Setup complete.
+Starting in 3...
+2...
+1...
+```
+
+Once the `1...` has been printed, you have entered what we called the **configuration mode**. It is designed for you to be able to change many configuration options and values without re-compiling and re-uploading the code (helped us a lot while testing).
+
+You can use the `help` command (send `help` via serial) to get a list of available commands with their description. The main ones are
+
+- **`config <Kp> <Ki> <Kd> <max_fw_speed> <max_fw_torque> <odrive_max_speed>`**
+
+    Defines the PID controller constants `Kp`, `Ki` and `Kd` to the provided values. Also defines the maximum speed at which the flywheel can rotate, and the maximum torque we can ask from the motor. Those are safety limits.
+
 ::: tip TODO
-Document how to use the software through a USB cable plugged into the microcontroller for now.
+List other commands and document how to use the final code. There is no point in documenting how to use the code before it's finished.
 :::
 
 ## Set up RemoteXY
@@ -178,7 +220,7 @@ That's pretty much it for setting up RemoteXY. Use the `ON/OFF` switch to enable
 The other sliders are for the Servo and the propulsion motor. Use them to steer the bike and make it go forward/backward.
 
 ::: tip TODO
-Tell the reader whether the bike is expected to balance while in motion.
+Tell the reader whether the bike is expected to balance while in motion, once the bicycle is done. There's no point in documenting what might change.
 :::
 
 You now have a fully working reproduction of what we did as a semester project!
