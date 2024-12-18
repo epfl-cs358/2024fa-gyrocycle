@@ -21,6 +21,8 @@
 #define RIGHT_STEERING_ANGLE 94
 #define DEFAULT_STEERING_ANGLE 90
 
+#define SETPOINT_DELTA 0.02
+
 #define MAX_TOTAL_ERROR 1
 
 // Angle and uncertainty at each step
@@ -55,6 +57,8 @@ float angleCorrection = -0.01;
 
 // margin of error for the angle to be considered vertical
 float angleMargin = 0.00;
+
+float setpoint = 0;
 
 // PID constants
 float Kp = 1.5;
@@ -145,9 +149,9 @@ void setup(void)
   Serial.println("RemoteXY ready");
 
   Serial.println("Setup complete.");
-  Serial.println("Starting in 3...");
+  Serial.print("Starting in 3...");
   delay(1000);
-  Serial.println("2...");
+  Serial.print("2...");
   delay(1000);
   Serial.println("1...");
   delay(1000);
@@ -451,6 +455,11 @@ void balancingMode()
   float input = 0;
   if (controllerMode == "PID")
   {
+    if (angle > SETPOINT_DELTA/2.0f) {
+      setpoint = -SETPOINT_DELTA;
+    } else if (angle < -SETPOINT_DELTA/2.0f) {
+      setpoint = SETPOINT_DELTA;
+    }
     input = pidBalancingImplementation(currentLoopTime - lastLoopTime, angle, 0);
   }
 
@@ -477,7 +486,10 @@ void balancingMode()
     Serial.print(angle, 5);
     Serial.print(",");
     Serial.print("input:");
-    Serial.println(input, 5);
+    Serial.print(input, 5);
+    Serial.print(",");
+    Serial.print("velocity:");
+    Serial.println(getFlywheelMotorSpeed());
   }
 
   // float speed = getFlywheelMotorSpeed();
