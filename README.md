@@ -2,7 +2,7 @@
 
 Welcome to the GyroCycle project's repo!
 
-GyroCycle is a project of building a self-balancing bicycle as part of the [CS-359 course at EPFL](https://edu.epfl.ch/coursebook/en/making-intelligent-things-a-CS-358-A).
+GyroCycle is a project of building a self-balancing bicycle as part of the [CS-358 course at EPFL](https://edu.epfl.ch/coursebook/en/making-intelligent-things-a-CS-358-A).
 
 This is the result we came up with:
 
