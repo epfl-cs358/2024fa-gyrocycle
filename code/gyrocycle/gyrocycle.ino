@@ -6,8 +6,8 @@
 
 #define GEAR_RATIO 0.5
 #define INITIAL_KALMAN_ANGLE -0.1
-// 0.06981 corresponds to 4 deg of uncertainty on the first step
-#define INITIAL_KALMAN_UNCERTAINTY 0.06981
+// 0.06981 corresponds to 4 deg of uncertainty on the first step 0.349066 corresponds to 20 deg (we don't know if we start right or left)
+#define INITIAL_KALMAN_UNCERTAINTY 0.349066
 #define TORQUE_FOR_CONSTANT_SPEED 0.018
 
 // This defines how much the angle is influenced by the accelerometer and the gyroscope
@@ -95,10 +95,11 @@ void switchMode()
     Serial.println("Resetting state variables...");
     angle = INITIAL_KALMAN_ANGLE;
     uncertainty = INITIAL_KALMAN_UNCERTAINTY;
-    lastAngleUpdateTime = 0;
-    currentTime = 0;
-    lastLoopTime = 0;
-    currentLoopTime = 0;
+    float time = micros();
+    lastAngleUpdateTime = time;
+    currentTime = time;
+    lastLoopTime = time;
+    currentLoopTime = time;
     total_error = 0.0;
     Serial.println("State variables reset.");
     Serial.println("Entering balancing mode.");
@@ -482,14 +483,20 @@ void balancingMode()
     Serial.print("elapsedTime(microseconds):");
     Serial.print(currentLoopTime - lastLoopTime);
     Serial.print(",");
+    Serial.print("test1:");
+    Serial.print(-0.3);
+    Serial.print(",");
+    Serial.print("test2:");
+    Serial.print(0.3);
+    Serial.print(",");
     Serial.print("angle:");
-    Serial.print(angle, 5);
-    Serial.print(",");
-    Serial.print("input:");
-    Serial.print(input, 5);
-    Serial.print(",");
-    Serial.print("velocity:");
-    Serial.println(getFlywheelMotorSpeed());
+    Serial.println(angle, 5);
+    // Serial.print(",");
+    // Serial.print("input:");
+    // Serial.print(input, 5);
+    // Serial.print(",");
+    // Serial.print("velocity:");
+    // Serial.println(getFlywheelMotorSpeed());
   }
 
   // float speed = getFlywheelMotorSpeed();
