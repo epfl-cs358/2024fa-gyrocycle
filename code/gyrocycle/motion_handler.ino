@@ -18,9 +18,10 @@
 
 // RemoteXY GUI configuration that will be sent to the connecting device
 #pragma pack(push, 1)  
-uint8_t RemoteXY_CONF[] =   // 36 bytes
-  { 255,2,0,0,0,29,0,19,0,0,0,0,31,1,200,84,1,1,2,0,
-  4,174,3,16,77,48,2,26,4,3,32,77,16,176,2,26 };
+uint8_t RemoteXY_CONF[] =   // 53 bytes
+  { 255,3,0,0,0,46,0,19,0,0,0,0,31,1,200,84,1,1,3,0,
+  4,177,4,16,77,48,2,26,4,3,32,77,16,176,2,26,2,89,4,26,
+  14,0,2,26,31,31,79,78,0,79,70,70,0 };
 
 // This structure defines all the variables and events of your control interface 
 // 
@@ -28,6 +29,7 @@ struct {
     // input variables
   int8_t speedSlider; // from -100 to 100
   int8_t steeringSlider; // from -100 to 100
+  uint8_t start_stop; // =1 if switch ON and =0 if OFF
 
     // other variable
   uint8_t connect_flag;  // =1 if wire connected, else =0
@@ -41,14 +43,16 @@ struct {
 
 // The propulsion motor driver has two input pins IN1 and IN2 that must be
 // wired to PWM pins on the microcontroller.
-#define PROPULSION_PIN_1 13 // IN1
-#define PROPULSION_PIN_2 12 // IN2
+#define PROPULSION_PIN_1 32 // IN1
+#define PROPULSION_PIN_2 33 // IN2
 
 // Pin to wire the Servo used for steering to
-#define STEERING_SERVO_PIN 2
+#define STEERING_SERVO_PIN 15
 
 // Limit how much the Servo can steer
 #define MAX_STEERING_ANGLE 60
+
+int isStarted = 0;
 
 unsigned long motionLastUpdate = 0;
 // Update every 50ms
@@ -56,6 +60,9 @@ const unsigned long motionUpdateInterval = 50;
 
 // Servo object for communication with the Servo motor responsible for steering
 Servo steeringServo;
+
+int steeringAngle = 90;
+int requestedSteeringAngle = 90;
 
 void initMotion() {
   RemoteXY_Init();
@@ -90,33 +97,35 @@ void handleRemoteControlEvents() {
   bool motorDirection = RemoteXY.speedSlider >= 0;
 
   // Map the steering slider value (-100 to 100) to servo angle (0 to 180)
-  int steeringAngle = map(RemoteXY.steeringSlider, 100, -100, 90 - MAX_STEERING_ANGLE, 90 + MAX_STEERING_ANGLE);
+  int remoteXYSteeringAngle = map(RemoteXY.steeringSlider, 100, -100, 90 + MAX_STEERING_ANGLE, 90 - MAX_STEERING_ANGLE);
+  if(remoteXYSteeringAngle > requestedSteeringAngle && remoteXYSteeringAngle > 90) {
+    steeringAngle = remoteXYSteeringAngle;
+  } else if(remoteXYSteeringAngle < 90 && remoteXYSteeringAngle < requestedSteeringAngle) {
+    steeringAngle = remoteXYSteeringAngle;
+  } else {
+    steeringAngle = requestedSteeringAngle;
+  }
 
-  // Print values for debugging
-    Serial.print("Speed Slider: ");
-    Serial.print(RemoteXY.speedSlider);
-    Serial.print(" | Steering Slider: ");
-    Serial.print(RemoteXY.steeringSlider);
-    Serial.print(" | Motor Speed: ");
-    Serial.print(motorSpeed);
-    Serial.print(" | Steering Angle: ");
-    Serial.println(steeringAngle);
+  // Update the Servo angle for steering
+  steeringServo.write(steeringAngle);
 
-    // Update the Servo angle for steering
-    steeringServo.write(steeringAngle);
-
-    // Update the speed of the propulsion motor
-    if (motorSpeed == 0) {
-      stopPropulsionMotor();
+  // Update the speed of the propulsion motor
+  if (motorSpeed == 0) {
+    stopPropulsionMotor();
+  }
+  else {
+    if (motorDirection) {
+      propulsionForward(motorSpeed);
     }
     else {
-      if (motorDirection) {
-        propulsionForward(motorSpeed);
-      }
-      else {
-        propulsionBackward(motorSpeed);
-      }
+      propulsionBackward(motorSpeed);
     }
+  }
+
+  if (isStarted != RemoteXY.start_stop) {
+    isStarted = RemoteXY.start_stop;
+    switchMode();
+  }
 }
 
 /**
@@ -161,4 +170,16 @@ void propulsionBackward(int motorSpeed) {
 void stopPropulsionMotor() {
   analogWrite(PROPULSION_PIN_1, LOW);
   analogWrite(PROPULSION_PIN_2, LOW);
+}
+
+bool isRemoteXYConnected() {
+  return RemoteXY_isConnected();
+}
+
+int getSteeringAngle() {
+  return steeringAngle;
+}
+
+void requestSteeringAngle(int requestedAngle) {
+  requestedSteeringAngle = requestedAngle;
 }
