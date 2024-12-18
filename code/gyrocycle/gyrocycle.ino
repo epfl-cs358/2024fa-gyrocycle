@@ -15,15 +15,11 @@
 #define NUMBER_OF_MEASURE_FOR_MPU_CALIBRATION 500
 #define MOVING_AVERAGE_SIZE 100
 
-#define ANGLE_MARGIN 0.01f
-
-<<<<<<< Updated upstream
 #define MINIMUM_VOLTAGE 11.3f // Volts
-=======
+
 #define LEFT_STEERING_ANGLE 86
 #define RIGHT_STEERING_ANGLE 94
 #define DEFAULT_STEERING_ANGLE 90
->>>>>>> Stashed changes
 
 #define MAX_TOTAL_ERROR 1
 
@@ -159,7 +155,8 @@ void setup(void)
 
 void loop()
 {
-  if(getVbusVoltage() < MINIMUM_VOLTAGE) {
+  if (getVbusVoltage() < MINIMUM_VOLTAGE)
+  {
     Serial.println("MINIMUM VOLTAGE ERROR");
     safetyStop();
     return;
@@ -444,6 +441,7 @@ void balancingMode()
   {
     Serial.readStringUntil('\n');
     switchMode();
+    requestSteeringAngle(DEFAULT_STEERING_ANGLE);
     return;
   }
 
@@ -453,19 +451,20 @@ void balancingMode()
   float input = 0;
   if (controllerMode == "PID")
   {
-<<<<<<< Updated upstream
-    input = pidBalancingImplementation(currentLoopTime - lastLoopTime, angle);
-=======
     input = pidBalancingImplementation(currentLoopTime - lastLoopTime, angle, 0);
   }
 
-  if(input < -0.03) {
+  if (input < -0.03)
+  {
     requestSteeringAngle(LEFT_STEERING_ANGLE);
-  } else if (input > 0.03) {
+  }
+  else if (input > 0.03)
+  {
     requestSteeringAngle(RIGHT_STEERING_ANGLE);
-  } else {
+  }
+  else
+  {
     requestSteeringAngle(DEFAULT_STEERING_ANGLE);
->>>>>>> Stashed changes
   }
 
   // monitoring purposes
@@ -526,25 +525,30 @@ float ogBalancingImplementation(float gyroX, float angle)
  *
  * @param elapsedTime The time elapsed since the last iteration of the PID controller.
  * @param angle The angle from the vertical, calculated with the accelerometer.
+ * @param setpoint The setpoint we want to go to
  *
  * @return float The torque that should be applied to the flywheel motor.
  */
-float pidBalancingImplementation(unsigned long elapsedTime, float angle)
+float pidBalancingImplementation(unsigned long elapsedTime, float angle, float setpoint)
 {
   // The error of this controller is the angle from the vertical
-  float error = angle - angleCorrection;
+  float error = angle - angleCorrection - setpoint;
   if (-angleMargin < error && error < angleMargin)
   {
     error = 0;
+    return 0;
   }
   // if (angle < 0) error = -error;
 
   // Accumulate the error for the integral (I) term
   // TODO : Should we clamp the value of total_error?
   total_error += error * elapsedTime / 1000000.0;
-  if(total_error > MAX_TOTAL_ERROR) {
+  if (total_error > MAX_TOTAL_ERROR)
+  {
     total_error = MAX_TOTAL_ERROR;
-  } else if(total_error < -MAX_TOTAL_ERROR) {
+  }
+  else if (total_error < -MAX_TOTAL_ERROR)
+  {
     total_error = -MAX_TOTAL_ERROR;
   }
 
@@ -600,14 +604,17 @@ void angleCalculatorEuro(float accelY, float accelZ, float gyroX, float gyroY, f
   lastAngleUpdateTime = currentTime;
 }
 
-void stopAll() {
+void stopAll()
+{
   stopFlywheelMotor();
   stopPropulsionMotor();
 }
 
-void safetyStop() {
+void safetyStop()
+{
   Serial.println("SAFETY STOP TRIGGERED");
-  while(1) {
+  while (1)
+  {
     stopFlywheelMotor();
     stopPropulsionMotor();
   }
