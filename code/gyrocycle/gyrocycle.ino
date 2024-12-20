@@ -21,8 +21,6 @@
 #define RIGHT_STEERING_ANGLE 94
 #define DEFAULT_STEERING_ANGLE 90
 
-#define SETPOINT_DELTA 0.02
-
 #define MAX_TOTAL_ERROR 1
 
 // Angle and uncertainty at each step
@@ -58,6 +56,7 @@ float angleCorrection = -0.01;
 // margin of error for the angle to be considered vertical
 float angleMargin = 0.00;
 
+float setpointDelta = 0.02;
 float setpoint = 0;
 
 // PID constants
@@ -219,26 +218,32 @@ void configurationMode()
     }
     else if (command == "clear_errors")
     {
+      Serial.println("Clearing errors...");
+      Serial.println("Please note that depending on which ODrive you use, clearing errors might not be");
+      Serial.println("a supported command. In that case, you'll have to restart your ODrive.");
       clearFlywheelErrors();
+      Serial.println("Errors cleared (hopefully).");
     }
     else if (command == "config")
     {
-      Serial.println("Usage: config <Kp> <Ki> <Kd> <max_fw_speed> <max_fw_torque> <odrive_max_speed>");
+      Serial.println("Usage: config <Kp> <Ki> <Kd> <max_fw_torque> <odrive_max_speed> <setpoint_delta> <angle_correction>, <angle_margin>");
     }
     else if (command.startsWith("config "))
     {
       // Extract the values from the command
       String parts = command.substring(7);
-      float newKp, newKi, newKd, max_fw_speed, max_fw_torque, odrive_max_speed;
-      sscanf(parts.c_str(), "%f %f %f %f %f %f", &newKp, &newKi, &newKd, &max_fw_speed, &max_fw_torque, &odrive_max_speed);
+      float newKp, newKi, newKd, max_fw_torque, odrive_max_speed, newSetpoint, newAngleCorrection, newAngleMargin;
+      sscanf(parts.c_str(), "%f %f %f %f %f %f %f %f", &newKp, &newKi, &newKd, &max_fw_torque, &odrive_max_speed, &newSetpoint, &newAngleCorrection, &newAngleMargin);
 
       // Update the values
       Kp = newKp;
       Ki = newKi;
       Kd = newKd;
-      setFlywheelMaxSpeed(max_fw_speed);
       setFlywheelMaxTorque(max_fw_torque);
       setOdriveConfigMaxSpeed(odrive_max_speed);
+      setpointDelta = newSetpoint;
+      angleCorrection = newAngleCorrection;
+      angleMargin = newAngleMargin;
 
       // Notify the user of the update
       Serial.print("New configuration: Kp=");
@@ -247,12 +252,35 @@ void configurationMode()
       Serial.print(Ki);
       Serial.print(", Kd=");
       Serial.print(Kd);
-      Serial.print(", max_fw_speed=");
-      Serial.print(max_fw_speed);
       Serial.print(", max_fw_torque=");
       Serial.print(max_fw_torque);
       Serial.print(", odrive_max_speed=");
-      Serial.println(odrive_max_speed);
+      Serial.print(odrive_max_speed);
+      Serial.print(", setpoint_delta=");
+      Serial.print(setpointDelta);
+      Serial.print(", angle_correction=");
+      Serial.print(angleCorrection);
+      Serial.print(", angle_margin=");
+      Serial.println(angleMargin);
+    }
+    else if (command == "debug")
+    {
+      printMaxReached();
+    }
+    else if (command.startsWith("filter ")) {
+      String parts = command.substring(7);
+      if (parts == "KALMAN" || parts == "EURO")
+      {
+        filter = parts;
+        Serial.print("Filter set to: ");
+        Serial.println(filter);
+      }
+      else
+      {
+        Serial.print("Unknown filter: '");
+        Serial.print(parts);
+        Serial.println("'.");
+      }
     }
     else if (command == "help")
     {
@@ -270,29 +298,35 @@ void configurationMode()
       Serial.println();
       Serial.println("---------------- clear_errors");
       Serial.println("Clears the errors of the ODrive driver so that the motor can keep going.");
+      Serial.println("Note that some ODrive versions do not support clearing their errors as a command and");
+      Serial.println("require to be restarted in order to reset their error state.");
       Serial.println();
-      Serial.println("---------------- config <Kp> <Ki> <Kd> <max_fw_speed> <max_fw_torque> <odrive_max_speed>");
-      Serial.println("Sets the PID constants and the maximum speed and torque for the flywheel motor, all in one command.");
+      Serial.println("---------------- config <Kp> <Ki> <Kd> <max_fw_torque> <odrive_max_speed> <setpoint_delta> <angle_correction> <angle_margin>");
+      Serial.println("Sets all configuration parameters. Used to easily save and reproduce a configuration across runs.");
       Serial.println();
       Serial.println("---------------- debug");
       Serial.println("Prints reached maxima in prior testing and resets detectors");
       Serial.println();
+      Serial.println("---------------- filter <EURO/KALMAN>");
+      Serial.println("Sets the filter used to reduce noise in the angle measurement. The default value on startup is KALMAN");
+      Serial.println();
       Serial.println("---------------- help");
       Serial.println("Displays a list of the existing commands.");
       Serial.println();
+      Serial.println("---------------- plotter <on/off/true/false/1/0>");
+      Serial.println("Enables/disables plotting logs (if enabled, the MCU will send Serial debug data).");
+      Serial.println();
       Serial.println("---------------- print");
-      Serial.println("Prints the current configuration with all necessary value to write them down somewhere.");
+      Serial.println("Prints the current configuration with all necessary values to write them down somewhere.");
       Serial.println();
       Serial.println("---------------- odrive_repl");
       Serial.println("Starts a REPL session with the ODrive where you can enter commands for the ODrive directly.");
       Serial.println();
-      Serial.println("---------------- set [Kp/Ki/Kd/max_fw_speed/max_fw_torque/odrive_max_speed] <value>");
-      Serial.println("Sets the named value (Kp, Ki, Kd, max_fw_speed, max_fw_torque or odrive_max_speed) to the provided value.");
+      Serial.println("---------------- set [Kp/Ki/Kd/max_fw_torque/odrive_max_speed/setpoint_delta/angle_correction/angle_margin] <value>");
+      Serial.println("Sets the named value (Kp, Ki, Kd, max_fw_torque, odrive_max_speed, setpoint_delta, angle_correction, angle_margin) to the provided value.");
       Serial.println();
       Serial.println("---------------- start");
       Serial.println("Exits the configuration mode and starts the balancing loop.");
-      Serial.println("---------------- angle_margin");
-      Serial.println("Sets the margin of error for the angle to be considered vertical.");
       Serial.println();
       Serial.println("===========================================");
     }
@@ -310,7 +344,7 @@ void configurationMode()
       }
       else
       {
-        Serial.println("Usage: plotter <on/off>");
+        Serial.println("Usage: plotter <on/off/true/false/1/0>");
       }
     }
     else if (command == "print")
@@ -326,13 +360,22 @@ void configurationMode()
       Serial.println("MPU6050:");
       printMpuConfiguration();
       Serial.println("===========================================");
-      Serial.println("PID:");
+      Serial.println("PID and algorithm:");
       Serial.print("Kp: ");
       Serial.println(Kp);
       Serial.print("Ki: ");
       Serial.println(Ki);
       Serial.print("Kd: ");
       Serial.println(Kd);
+      Serial.print("");
+      Serial.print("Algorithm: ");
+      Serial.println(controllerMode);
+      Serial.print("Filter: ");
+      Serial.println(filter);
+      Serial.print("Set point: ");
+      Serial.println(setpointDelta);
+      Serial.print("Angle correction: ");
+      Serial.println(angleCorrection);
       Serial.println("===========================================");
       Serial.println("General:");
       Serial.print("Plotting enabled: ");
@@ -365,12 +408,6 @@ void configurationMode()
         Serial.print("New Kd: ");
         Serial.println(Kd);
       }
-      else if (name.startsWith("max_fw_speed "))
-      {
-        setFlywheelMaxSpeed(value);
-        Serial.print("New max flywheel speed: ");
-        Serial.println(value);
-      }
       else if (name.startsWith("max_fw_torque "))
       {
         setFlywheelMaxTorque(value);
@@ -383,6 +420,21 @@ void configurationMode()
         Serial.print("New ODrive max speed: ");
         Serial.println(value);
       }
+      else if (name.startsWith("setpoint_delta ")) {
+        setpointDelta = value;
+        Serial.print("New setpoint delta: ");
+        Serial.println(value);
+      }
+      else if (name.startsWith("angle_correction ")) {
+        angleCorrection = value;
+        Serial.print("New angle correction: ");
+        Serial.println(value);
+      }
+      else if (name.startsWith("angle_margin ")) {
+        angleMargin = value;
+        Serial.print("New angle margin: ");
+        Serial.println(value);
+      }
       else
       {
         Serial.print("Unknown constant: '");
@@ -390,21 +442,9 @@ void configurationMode()
         Serial.println("'.");
       }
     }
-    else if (command == "debug")
-    {
-      printMaxReached();
-    }
     else if (command == "start")
     {
       switchMode();
-    }
-    else if (command.startsWith("setpoint "))
-    {
-      angleCorrection = command.substring(command.indexOf(' ') + 1).toFloat();
-    }
-    else if (command.startsWith("angle_margin "))
-    {
-      angleMargin = command.substring(command.indexOf(' ') + 1).toFloat();
     }
     else
     {
@@ -455,10 +495,10 @@ void balancingMode()
   float input = 0;
   if (controllerMode == "PID")
   {
-    if (angle > SETPOINT_DELTA/2.0f) {
-      setpoint = -SETPOINT_DELTA;
-    } else if (angle < -SETPOINT_DELTA/2.0f) {
-      setpoint = SETPOINT_DELTA;
+    if (angle > setpointDelta/2.0f) {
+      setpoint = -setpointDelta;
+    } else if (angle < -setpointDelta/2.0f) {
+      setpoint = setpointDelta;
     }
     input = pidBalancingImplementation(currentLoopTime - lastLoopTime, angle, 0);
   }
@@ -492,21 +532,6 @@ void balancingMode()
     Serial.println(getFlywheelMotorSpeed());
   }
 
-  // float speed = getFlywheelMotorSpeed();
-  // Serial.print(",");
-  // Serial.print("speed:");
-  // Serial.println(speed);
-
-  // if (flywheelMotorSpeedOverUpperBound() && input > TORQUE_FOR_CONSTANT_SPEED) {
-  //   setFlywheelMotorTorque(TORQUE_FOR_CONSTANT_SPEED);
-  // }
-  // else if (flywheelMotorSpeedUnderLowerBound() && input < -TORQUE_FOR_CONSTANT_SPEED) {
-  //   setFlywheelMotorTorque(-TORQUE_FOR_CONSTANT_SPEED);
-  // }
-  // else {
-  //   // The safety bounds are applied within the function
-  //   setFlywheelMotorTorque(input);
-  // }
   setFlywheelMotorTorque(input);
 
   lastLoopTime = currentLoopTime;

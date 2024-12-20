@@ -23,7 +23,7 @@ export default defineConfig({
     ],
 
     editLink: {
-      pattern: "https://github.com/epfl-cs358/2024fa-gyrocycle/edit/docs/docs/:path",
+      pattern: "https://github.com/epfl-cs358/2024fa-gyrocycle/edit/main/docs/:path",
       text: "Suggest an edit of this page"
     },
 

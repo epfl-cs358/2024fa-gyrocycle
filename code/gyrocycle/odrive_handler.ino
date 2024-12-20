@@ -57,7 +57,6 @@ void initOdriveCommunication() {
     odrive.setState(AXIS_STATE_CLOSED_LOOP_CONTROL);
     delay(10);
   }
-  setOdriveConfigMaxSpeed(flywheelMaxSpeed);
   Serial.println("ODrive running.");
 }
 
@@ -122,20 +121,10 @@ void odriveRepl() {
 }
 
 void printOdriveConfiguration() {
-  Serial.print("Maximum speed: ");
-  Serial.println(flywheelMaxSpeed);
   Serial.print("Maximum torque: ");
   Serial.println(flywheelMaxTorque);
   Serial.print("ODrive configuration maximum speed: ");
   Serial.println(getOdriveConfigMaxSpeed());
-}
-
-/**
- * Sets the maximum speed for the ODrive. DOES NOT set the maximum speed in the ODrive's
- * configuration itself, only locally in the MCU's code.
- */
-void setFlywheelMaxSpeed(float maxSpeed) {
-  flywheelMaxSpeed = maxSpeed;
 }
 
 /**
@@ -189,24 +178,6 @@ float getFlywheelMotorSpeed() {
   }
 
   return speed;
-}
-
-/**
- * Returns false if the current flywheel motor speed lower than the upper bound. Returns
- * true otherwise.
- */
-bool flywheelMotorSpeedOverUpperBound() {
-  float speed = getFlywheelMotorSpeed();
-  return speed >= flywheelMaxSpeed;
-}
-
-/**
- * Returns false if the current flywheel motor speed higher than the lower bound. Returns
- * true otherwise.
- */
-bool flywheelMotorSpeedUnderLowerBound() {
-  float speed = getFlywheelMotorSpeed();
-  return speed <= -flywheelMaxSpeed;
 }
 
 /**

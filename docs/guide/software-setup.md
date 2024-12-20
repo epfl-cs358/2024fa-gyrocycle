@@ -197,12 +197,43 @@ Once the `1...` has been printed, you have entered what we called the **configur
 
 You can use the `help` command (send `help` via serial) to get a list of available commands with their description. The main ones are
 
-- **`config <Kp> <Ki> <Kd> <max_fw_speed> <max_fw_torque> <odrive_max_speed>`**
+- **`config`**
 
-    Defines the PID controller constants `Kp`, `Ki` and `Kd` to the provided values. Also defines the maximum speed at which the flywheel can rotate, and the maximum torque we can ask from the motor. Those are safety limits.
+    Defines the parameters for the balancing algorithm. Defines all parameters at once (except the filter, see below) to easily reproduce a configuration across runs, restarts and re-flashes.
 
-::: tip TODO
-List other commands and document how to use the final code. There is no point in documenting how to use the code before it's finished.
+    See the in-code `help` command for the exact order of parameters.
+
+- **`filter`**
+
+    Set the filter used for reducing the noise in the angle measurement. Possible values are [`KALMAN`](https://en.wikipedia.org/wiki/Kalman_filter) and [`EURO`](https://github.com/casiez/OneEuroFilterArduino/).
+
+- **`set`**
+
+    Individually set the parameters instead of using `config`. See the in-code `help` command for the exact names of possible parameters.
+
+Here are the parameters used by our balancing algorithm.
+
+| Name | Description | Type | Startup value |
+|-|-|-|-|
+| `controller_mode` | What mathematical shenanigans to use to determine what torque the flywheel needs to provide. Possible values are `PID` and `OG`. Note that most of the following values are only used with `PID`. | `String` | `PID` |
+| `angle_correction` | The MPU6050 (the accelerometer) might be slighty tilted or the angle prediction algorithm might have a constant error in its result. This is a simple offset that gets subtracted from the computed current tilting angle of the bicycle before the value is used. | `float` | `-0.01` |
+| `angle_margin` | How much margin there is for the bike to consider itself balanced. For example, if set to `0.02`, then the bicycle will consider itself balanced between `-0.02` and `0.02` angles, even though it's not perfectly at angle `0`. | `float` | `0.00` |
+| `filter` | When estimating the current tilting angle of the bicycle, vibrations or other hardware shenanigans might introduce significant amounts of noise. We use a filter to reduce this noise, either a `KALMAN` filter or an `EURO` filter. Use the `filter` command to change this parameter. | `String` | `KALMAN` |
+| `Kp` | The *Kp* coefficient of our [PID controller](https://en.wikipedia.org/wiki/Proportional%E2%80%93integral%E2%80%93derivative_controller). | `float` | `1.5` |
+| `Ki` | The *Ki* coefficient of our [PID controller](https://en.wikipedia.org/wiki/Proportional%E2%80%93integral%E2%80%93derivative_controller). | `float` | `0.0000001` |
+| `Kd` | The *Kd* coefficient of our [PID controller](https://en.wikipedia.org/wiki/Proportional%E2%80%93integral%E2%80%93derivative_controller). | `float` | `0.1` |
+| `max_fw_torque` | Safety limit for the torque the motor will provide for the flywheel. This is enforced by the ODrive, not in our software. | `float` | Depends on your ODrive configuration. |
+| `odrive_max_speed` | Safety limit for the velocity the motor will provide for the flywheel. This is enforced by the ODrive, not in our software. | `float` | Depends on your ODrive configuration. |
+| `setpoint_delta` | Introduces a dynamic setpoint instead of a static one. In the context our PID, the setpoint is the angle at which the bike considers itself balanced, so ideally angle `0`. This setpoint delta allows you to tell the bicycle to oscillate instead of trying to reach `0`. For example, if set to `0.02`, once the bicycle reaches the setpoint of `0.02`, the setpoint will be dynamically changed to `-0.02`, so the bike will try to oscillate between those two points. | `float` | `0.02` |
+
+::: tip
+You can start with the following configuration, it worked pretty well for us.
+
+```
+algo PID
+filter KALMAN
+config 2.5 0.022 0.09 1 80 0 0.0245 0
+```
 :::
 
 ## Set up RemoteXY
@@ -219,8 +250,10 @@ That's pretty much it for setting up RemoteXY. Use the `ON/OFF` switch to enable
 
 The other sliders are for the Servo and the propulsion motor. Use them to steer the bike and make it go forward/backward.
 
-::: tip TODO
-Tell the reader whether the bike is expected to balance while in motion, once the bicycle is done. There's no point in documenting what might change.
+::: info
+Because of technical difficulties, we could not test the balancing software while in motion, so be careful if you try it.
+
+If you find a good configuration, please [let us know](https://github.com/epfl-cs358/2024fa-gyrocycle/issues/new) so we can try it for ourselves and add it to the documentation.
 :::
 
 You now have a fully working reproduction of what we did as a semester project!
