@@ -13,7 +13,7 @@ For those reasons, we did not 3D-print this shaft, but manufactured a steel shaf
 | Document | Link |
 |-|-|
 | 3D Model as `.step` file | <a href="/step/flywheel-shaft.step" download="flywheel-shaft.step">Download</a> |
-| Blueprint for dimensions | <a href="/step/flywheel-shaft-blueprint.pdf" download="flywheel-shaft-blueprint.pdf">Download</a> |
+| Blueprint for dimensions | <a href="/pdf/flywheel-shaft-blueprint.pdf" download="flywheel-shaft-blueprint.pdf">Download</a> |
 
 ::: details 3D Model Preview
 <StlViewer stlUrl="/stl/flywheel-shaft.stl" />
