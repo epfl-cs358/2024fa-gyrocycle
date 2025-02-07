@@ -14,3 +14,5 @@ Thank you for reading this far.
 Yours sincerely,
 
 The GyroCycle team.
+
+Alexandre, Maël, Ondrej, Rémy, Tom

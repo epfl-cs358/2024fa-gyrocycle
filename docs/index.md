@@ -24,10 +24,8 @@ One can also connect to the bicycle from a mobile phone using [RemoteXY](https:/
 
 We provide detailed instructions and documents to build your own GyroCycle. See the [guide](./guide/) for more information.
 
-## Videos
+## Video
 
-Here are some videos of the bicycle in action.
+Here you can see the bike in action (with the noise it makes...).
 
-::: tip TODO
-Publish a video of the balancing, steering and driving bike.
-:::
+<video controls="controls" src="/videos/balancing-bicycle.mp4" style="max-height: 50vh;" />
