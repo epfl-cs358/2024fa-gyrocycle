@@ -20,7 +20,7 @@ Following is the list of parts to be laser-cut in an MDF plate, divided into two
 2. Parts for the bicycle's stand. Those are not necessary if you only want to build the bike.
 
 ::: tip
-You can download all of the `.dxf` files as a single `.zip` with <a href="/zip/gyrocycle-parts-to-laser-cut.zip" download>this link</a>.
+You can download all of the `.dxf` files as a single `.zip` with <a href="/2024fa-gyrocycle/zip/gyrocycle-parts-to-laser-cut.zip" download>this link</a>.
 :::
 
 ## Bicycle Parts
@@ -28,7 +28,7 @@ You can download all of the `.dxf` files as a single `.zip` with <a href="/zip/g
 MDF parts to be laser-cut for the bicycle itself form the rigid frame of the bicycle.
 
 ::: details Preview of the rigid frame
-<StlViewer stlUrl="/stl/bicycle-mdf-frame.stl" meshColor="#a16207" />
+<StlViewer stlUrl="/2024fa-gyrocycle/stl/bicycle-mdf-frame.stl" meshColor="#a16207" />
 :::
 
 <BicyclePartsToLaserCutTable />
@@ -38,11 +38,11 @@ MDF parts to be laser-cut for the bicycle itself form the rigid frame of the bic
 We designed a stand to put the bike on when it is not balancing. Those are the parts needed to manufacture it.
 
 ::: details Preview of the stand with the bike on
-<StlViewer stlUrl="/stl/stand-with-bicycle.stl" meshColor="#a16207" />
+<StlViewer stlUrl="/2024fa-gyrocycle/stl/stand-with-bicycle.stl" meshColor="#a16207" />
 :::
 
 ::: details Preview of the stand without the bike
-<StlViewer stlUrl="/stl/stand-without-bicycle.stl" meshColor="#a16207" />
+<StlViewer stlUrl="/2024fa-gyrocycle/stl/stand-without-bicycle.stl" meshColor="#a16207" />
 :::
 
 <StandPartsToLaserCutTable />

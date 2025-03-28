@@ -9,7 +9,7 @@ Some parts of the bike need to be 3D-printed. All parts are to be printed in [**
 Below is a list of `.stl` files to be 3D-printed, along with how many of each must be printed and in what material.
 
 ::: tip
-You can download all of the `.stl` files as a single `.zip` with <a href="/zip/gyrocycle-parts-to-3d-print.zip" download>this link</a>.
+You can download all of the `.stl` files as a single `.zip` with <a href="/2024fa-gyrocycle/zip/gyrocycle-parts-to-3d-print.zip" download>this link</a>.
 :::
 
 <ComponentsToPrintTable />

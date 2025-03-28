@@ -4,12 +4,12 @@ Once you have obtained the [required components](./bom), printed the [3D parts](
 
 Refer to our CAD, our blueprints and our electrical schema to assemble and wire everything together.
 
-| Description | Download link |
-|-|-|
-| CAD `.step` file | <a href="/step/complete-bicycle.step" download>Download</a> |
-| Bicycle blueprints (`.pdf`) | <a href="/pdf/bicycle-blueprint.pdf" download>Download</a> |
-| Electrical Schema (`.pdf`) | <a href="/pdf/electrical-schema.pdf" download>Download</a> |
-| Electrical Schema (`.zip` Kicad project) | <a href="/zip/electrical-schema.zip" download>Download</a> |
+| Description                              | Download link                                                                |
+| ---------------------------------------- | ---------------------------------------------------------------------------- |
+| CAD `.step` file                         | <a href="/2024fa-gyrocycle/step/complete-bicycle.step" download>Download</a> |
+| Bicycle blueprints (`.pdf`)              | <a href="/2024fa-gyrocycle/pdf/bicycle-blueprint.pdf" download>Download</a>  |
+| Electrical Schema (`.pdf`)               | <a href="/2024fa-gyrocycle/pdf/electrical-schema.pdf" download>Download</a>  |
+| Electrical Schema (`.zip` Kicad project) | <a href="/2024fa-gyrocycle/zip/electrical-schema.zip" download>Download</a>  |
 
 Just a few notice before you start:
 
@@ -17,6 +17,6 @@ Just a few notice before you start:
 
 - You might observe that the shafts for the front and rear wheels of the bike have a too small diameter to properly fit in the bearings without floating.
 
-    We solved this problem by adding tape on the shafts. This allowed us to add a few millimeters of diameter without re-printing the parts.
+  We solved this problem by adding tape on the shafts. This allowed us to add a few millimeters of diameter without re-printing the parts.
 
 Once you assembled your bike, congratulations, you have the hardware ready! To make it work properly, there's one more step you need to take, and that would be the software setup.

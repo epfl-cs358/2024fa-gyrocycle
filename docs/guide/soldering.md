@@ -4,10 +4,10 @@ GyroCycle requires you to solder a few wires together to properly work. Below is
 
 Diagrams are provided below for easier reference, but you can also directly look at the electrical schema. Be warned though, not all connections on the electrical schema need to be soldered.
 
-| Description | Download link |
-|-|-|
-| Electrical Schema (`.pdf`) | <a href="/pdf/electrical-schema.pdf" download>Download</a> |
-| Electrical Schema (`.zip` Kicad project) | <a href="/zip/electrical-schema.zip" download>Download</a> |
+| Description                              | Download link                                                               |
+| ---------------------------------------- | --------------------------------------------------------------------------- |
+| Electrical Schema (`.pdf`)               | <a href="/2024fa-gyrocycle/pdf/electrical-schema.pdf" download>Download</a> |
+| Electrical Schema (`.zip` Kicad project) | <a href="/2024fa-gyrocycle/zip/electrical-schema.zip" download>Download</a> |
 
 ## Soldering to the MPU6050
 
